@@ -1,0 +1,59 @@
+{
+    "name": "opengento/module-makegento-cli",
+    "description": "Unleash CLI power to ease magento dumb work",
+    "keywords": [
+        "php",
+        "magento",
+        "magento2",
+        "module",
+        "extension",
+        "free",
+        "cli"
+    ],
+    "require": {
+        "php": "^7.4||^8.2",
+        "ext-json": "*",
+        "magento/framework": "^103.0",
+        "magento/module-config": "*",
+        "magento/module-store": "*"
+    },
+    "require-dev": {
+        "magento/magento-coding-standard": "^5",
+        "magento/marketplace-eqp": "^4.0",
+        "roave/security-advisories": "dev-master"
+    },
+    "type": "magento2-module",
+    "license": [
+        "MIT"
+    ],
+    "homepage": "https://github.com/opengento/magento2-snowflake",
+    "authors": [
+        {
+            "name": "Opengento Team",
+            "email": "opengento@gmail.com",
+            "homepage": "https://opengento.fr/",
+            "role": "lead"
+        },
+        {
+            "name": "Xavier Guenel",
+            "email": "xavier.guenel@gmail.com",
+            "homepage": "https://www.linkedin.com/in/%F0%9F%8E%A9-xavier-guenel-255174198/",
+            "role": "maintainer"
+        }
+    ],
+    "support": {
+        "source": "https://github.com/opengento/magento2-makegento-cli",
+        "issues": "https://github.com/opengento/magento2-makegento-cli/issues"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Opengento\\MakegentoCli\\": ""
+        }
+    },
+    "archive": {
+        "exclude": ["/doc"]
+    }
+}
