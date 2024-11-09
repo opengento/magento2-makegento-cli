@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Api;
 
+use Opengento\MakegentoCli\Generator\Generator;
+use Opengento\MakegentoCli\Utils\InputConfiguration;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\Output;
 
 /**
  * Interface that all maker commands must implement.
@@ -30,17 +33,12 @@ interface MakerInterface
     public function configureCommand(Command $command, InputConfiguration $inputConfig);
 
     /**
-     * Configure any library dependencies that your maker requires.
-     */
-    public function configureDependencies(DependencyBuilder $dependencies);
-
-    /**
      * If necessary, you can use this method to interactively ask the user for input.
      */
-    public function interact(InputInterface $input, ConsoleStyle $io, Command $command);
+    public function interact(InputInterface $input, Command $command);
 
     /**
      * Called after normal code generation: allows you to do anything.
      */
-    public function generate(InputInterface $input, ConsoleStyle $io, Generator $generator);
+    public function generate(InputInterface $input, Output $output, Generator $generator);
 }

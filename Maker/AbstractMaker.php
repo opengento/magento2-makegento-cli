@@ -4,24 +4,29 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Maker;
 
-use Opengento\MakegentoCli\Api\ConsoleStyle;
-use Opengento\MakegentoCli\Api\DependencyBuilder;
-use Opengento\MakegentoCli\Api\Generator;
-use Opengento\MakegentoCli\Api\InputConfiguration;
+use Magento\Framework\Console\QuestionPerformer\YesNo;
+use Opengento\MakegentoCli\Service\DbSchemaService;
+use Opengento\MakegentoCli\Utils\ConsoleStyle;
 use Opengento\MakegentoCli\Api\MakerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * @method string getCommandDescription()
  */
 abstract class AbstractMaker implements MakerInterface
 {
+    protected InputInterface $input;
+
+    public function __construct(
+        private readonly ConsoleStyle    $consoleStyle
+    ) {
+    }
+
     /**
      * @return void
      */
-    public function interact(InputInterface $input, ConsoleStyle $io, Command $command)
+    public function interact(InputInterface $input, Command $command)
     {
     }
 
@@ -38,7 +43,7 @@ abstract class AbstractMaker implements MakerInterface
     }
 
     /**
-     * @param OutputInterface $output
+     * @param ConsoleStyle $io
      *
      * @return void
      */
@@ -49,21 +54,6 @@ abstract class AbstractMaker implements MakerInterface
         $io->writeln("<error>  Error!  </error>");
         $io->writeln("<error>          </error>");
         $io->newLine();
-    }
-
-    /** @param array<class-string, string> $dependencies */
-    protected function addDependencies(array $dependencies, ?string $message = null): string
-    {
-        $dependencyBuilder = new DependencyBuilder();
-
-        foreach ($dependencies as $class => $name) {
-            $dependencyBuilder->addClassDependency($class, $name);
-        }
-
-        return $dependencyBuilder->getMissingPackagesMessage(
-            static::getCommandName(),
-            $message
-        );
     }
 
     /**
