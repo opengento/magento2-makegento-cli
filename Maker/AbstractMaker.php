@@ -11,6 +11,7 @@ use Opengento\MakegentoCli\Api\InputConfiguration;
 use Opengento\MakegentoCli\Api\MakerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * @method string getCommandDescription()
@@ -33,6 +34,20 @@ abstract class AbstractMaker implements MakerInterface
         $io->writeln(' <bg=green;fg=white>          </>');
         $io->writeln(' <bg=green;fg=white> Success! </>');
         $io->writeln(' <bg=green;fg=white>          </>');
+        $io->newLine();
+    }
+
+    /**
+     * @param OutputInterface $output
+     *
+     * @return void
+     */
+    protected function writeErrorMessage(ConsoleStyle $io)
+    {
+        $io->newLine();
+        $io->writeln("<error>          </error>");
+        $io->writeln("<error>  Error!  </error>");
+        $io->writeln("<error>          </error>");
         $io->newLine();
     }
 
