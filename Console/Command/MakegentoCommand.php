@@ -56,21 +56,26 @@ class MakegentoCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->appState->setAreaCode(Area::AREA_GLOBAL);
         $path = BP . '/app/code';
 
-        $modulesList = [];
+        if (!is_dir($path)) {
+            $output->writeln("<error>app/code directory doesn't exist.</error>");
+            return Command::FAILURE;
+        }
+        $this->appState->setAreaCode(Area::AREA_GLOBAL);
+
+        $modulesPaths = [];
         try {
             foreach (new DirectoryIterator($path) as $vendorDir) {
                 if ($vendorDir->isDir() && !$vendorDir->isDot()) {
-                    foreach (new DirectoryIterator($vendorDir->getPathname()) as $key => $moduleDir) {
+                    foreach (new DirectoryIterator($vendorDir->getPathname()) as $moduleDir) {
                         if ($moduleDir->isDir() && !$moduleDir->isDot()) {
-                            $modulesList[] = $vendorDir->getFilename() . "_" . $moduleDir->getFilename();
+                            $modulesPaths[] = $vendorDir->getFilename() . "_" . $moduleDir->getFilename();
                         }
                     }
                 }
             }
-            sort($modulesList);
+            sort($modulesPaths);
         } catch (\Exception $e) {
             $output->writeln("<error>Erreur lors de l'accès au dossier : {$e->getMessage()}</error>");
             return Command::FAILURE;
@@ -84,16 +89,15 @@ class MakegentoCommand extends Command
         $helper = $this->getHelper('question');
         $question = new ChoiceQuestion(
             'Choose the module you want to work with',
-            $modulesList
+            $modulesPaths
         );
         $question->setErrorMessage('%s is an invalid choice.');
 
         $selectedModule = $helper->ask($input, $output, $question);
 
         $output->writeln("<info>You choose: $selectedModule</info>");
-        if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the database schema for this module?'], $input, $output)){
-            $output->writeln("<info>Database schema creation</info>");
-            $this->dbSchemaQuestionner($input, $output);
+        if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module?'], $input, $output)){
+            $this->dbSchemaQuestionner($modulesPaths[$selectedModule], $input, $output);
         }
         $output->writeln("<info>Vive Opengento</info>");
 
@@ -106,12 +110,20 @@ class MakegentoCommand extends Command
      * @throws \Symfony\Component\Console\Exception\RuntimeException
      * @return void
      */
-    private function dbSchemaQuestionner(InputInterface $input, OutputInterface $output)
+    private function dbSchemaQuestionner(string $modulePath, InputInterface $input, OutputInterface $output)
     {
         /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
         $helper = $this->getHelper('question');
+        $dbSchemaExists = $this->dbSchemaCreator->moduleHasDbSchema($modulePath);
+        if ($dbSchemaExists) {
+            $output->writeln("<info>Database schema already exists</info>");
+            $output->writeln("<info>Database schema modification</info>");
+            $dataTables = $this->dbSchemaCreator->parseDbSchema($modulePath);
+        } else {
+            $output->writeln("<info>Database schema creation</info>");
+            $dataTables = [];
+        }
         $addNewTable = true;
-        $dataTables = [];
         while ($addNewTable) {
             $tableNameQuestion = new Question('Enter the database name: ');
             $tablename = $helper->ask($input, $output, $tableNameQuestion);
@@ -137,6 +149,24 @@ class MakegentoCommand extends Command
                     $fieldLength = $helper->ask($input, $output, $fieldLengthQuestion);
                     $tableFields[$fieldName]['padding'] = $fieldLength;
                 }
+                $defaultValue = $this->yesNoQuestionPerformer->execute(
+                    ['Do you want to set a default value for this field?'],
+                    $input,
+                    $output
+                );
+                if ($defaultValue) {
+                    if ($fieldType === 'datetime' && $this->yesNoQuestionPerformer->execute(
+                            ['Do you want to set the default value to the current time?'],
+                            $input,
+                            $output
+                        )) {
+                        $tableFields[$fieldName]['default'] = 'CURRENT_TIMESTAMP';
+                    } else {
+                        $defaultValueQuestion = new Question('Enter the default value: ');
+                        $defaultValue = $helper->ask($input, $output, $defaultValueQuestion);
+                        $tableFields[$fieldName]['default'] = $defaultValue;
+                    }
+                }
                 $tableFields[$fieldName]['primary'] = $this->yesNoQuestionPerformer->execute(
                     ['Is this field a primary key?'],
                     $input,
@@ -153,16 +183,14 @@ class MakegentoCommand extends Command
                     $output
                 );
             }
-            $dataTables[$tablename] =
-
-
-                    $tableFields;
+            $dataTables[$tablename] = $tableFields;
             $addNewTable = $this->yesNoQuestionPerformer->execute(
                 ['Do you want to add a new table?'],
                 $input,
                 $output
             );
         }
+        $this->dbSchemaCreator->createDbSchema($modulePath, $dataTables);
     }
 
     /**
