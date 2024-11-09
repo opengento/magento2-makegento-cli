@@ -14,4 +14,11 @@
             </argument>
         </arguments>
     </type>
+    <type name="Opengento\MakegentoCli\Console\Command\MakegentoCommand">
+        <arguments>
+            <argument name="state" xsi:type="object">Magento\Framework\App\State\Proxy</argument>
+            <argument name="yesNoQuestionPerformer" xsi:type="object">Magento\Framework\Console\QuestionPerformer\YesNo\Proxy</argument>
+            <argument name="dbSchemaCreator" xsi:type="object">Opengento\MakegentoCli\Service\DbSchemaCreator\Proxy</argument>
+        </arguments>
+    </type>
 </config>

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Opengento\MakegentoCli\Console\Command;
 
 use DirectoryIterator;
+use Magento\Framework\Console\QuestionPerformer\YesNo;
+use Opengento\MakegentoCli\Service\DbSchemaCreator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Magento\Framework\App\State;
 use Magento\Framework\App\Area;
+use Symfony\Component\Console\Question\Question;
 
 /**
  * Copyright © OpenGento, All rights reserved.
@@ -24,7 +27,9 @@ class MakegentoCommand extends Command
      * @param State $appState
      */
     public function __construct(
-        private readonly State $appState
+        private readonly State $appState,
+        private readonly DbSchemaCreator $dbSchemaCreator,
+        private readonly YesNo $yesNoQuestionPerformer
     ) {
         parent::__construct();
     }
@@ -76,7 +81,7 @@ class MakegentoCommand extends Command
 
         $helper = $this->getHelper('question');
         $question = new ChoiceQuestion(
-            'Chose the module you want to work with',
+            'Choose the module you want to work with',
             $modulesList
         );
         $question->setErrorMessage('%s is an invalid choice.');
@@ -84,8 +89,75 @@ class MakegentoCommand extends Command
         $selectedModule = $helper->ask($input, $output, $question);
 
         $output->writeln("<info>You choose: $selectedModule</info>");
+        if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the database schema for this module?'], $input, $output)){
+            $output->writeln("<info>Database schema creation</info>");
+            $this->dbSchemaQuestionner($input, $output);
+        }
         $output->writeln("<info>Vive Opengento</info>");
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @throws \Symfony\Component\Console\Exception\RuntimeException
+     * @return void
+     */
+    private function dbSchemaQuestionner(InputInterface $input, OutputInterface $output)
+    {
+        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
+        $helper = $this->getHelper('question');
+        $addNewTable = true;
+        $dataTables = [];
+        while ($addNewTable) {
+            $tableNameQuestion = new Question('Enter the database name: ');
+            $tablename = $helper->ask($input, $output, $tableNameQuestion);
+            $tableFields = [];
+            $addNewField = true;
+            while ($addNewField) {
+                $fieldNameQuestion = new Question('Enter the field name: ');
+                $fieldName = $helper->ask($input, $output, $fieldNameQuestion);
+                // Let's ask things to create database
+                $fieldTypeQuestion = new ChoiceQuestion(
+                    'Choose the field type',
+                    $this->dbSchemaCreator->getFieldTypes()
+                );
+                $fieldType = $helper->ask($input, $output, $fieldTypeQuestion);
+                $tableFields[$fieldName]['type'] = $fieldType;
+                if ($fieldType === 'varchar') {
+                    $fieldLengthQuestion = new Question('Enter the field length: ');
+                    $fieldLength = $helper->ask($input, $output, $fieldLengthQuestion);
+                    $tableFields[$fieldName]['length'] = $fieldLength;
+                }
+                if ($fieldType === 'int') {
+                    $fieldLengthQuestion = new Question('Enter the field padding (length): ');
+                    $fieldLength = $helper->ask($input, $output, $fieldLengthQuestion);
+                    $tableFields[$fieldName]['padding'] = $fieldLength;
+                }
+                $tableFields[$fieldName]['primary'] = $this->yesNoQuestionPerformer->execute(
+                    ['Is this field a primary key?'],
+                    $input,
+                    $output)
+                ;
+                $tableFields[$fieldName]['nullable'] = $this->yesNoQuestionPerformer->execute(
+                    ['Is this field nullable?'],
+                    $input,
+                    $output
+                );
+                $addNewField = $this->yesNoQuestionPerformer->execute(
+                    ['Do you want to add a new field?'],
+                    $input,
+                    $output
+                );
+            }
+            $dataTables[$tablename] = $tableFields;
+            $addNewTable = $this->yesNoQuestionPerformer->execute(
+                ['Do you want to add a new table?'],
+                $input,
+                $output
+            );
+        }
+
     }
 }
