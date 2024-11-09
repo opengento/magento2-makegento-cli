@@ -8,6 +8,8 @@ use DirectoryIterator;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Service\DbSchemaCreator;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Exception\RuntimeException;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
@@ -151,13 +153,47 @@ class MakegentoCommand extends Command
                     $output
                 );
             }
-            $dataTables[$tablename] = $tableFields;
+            $dataTables[$tablename] =
+
+
+                    $tableFields;
             $addNewTable = $this->yesNoQuestionPerformer->execute(
                 ['Do you want to add a new table?'],
                 $input,
                 $output
             );
         }
+    }
 
+    /**
+     * Write Success Message
+     *
+     * @param OutputInterface $output
+     *
+     * @return void
+     */
+    protected function writeSuccessMessage(OutputInterface $output)
+    {
+        $output->writeln(PHP_EOL);
+        $output->writeln(' <bg=green;fg=white>          </>');
+        $output->writeln(' <bg=green;fg=white> Success! </>');
+        $output->writeln(' <bg=green;fg=white>          </>');
+        $output->writeln(PHP_EOL);
+    }
+
+    /**
+     * Write Error Message
+     *
+     * @param OutputInterface $output
+     *
+     * @return void
+     */
+    protected function writeErrorMessage(OutputInterface $output)
+    {
+        $output->writeln(PHP_EOL);
+        $output->writeln("<error>          </error>");
+        $output->writeln("<error>  Error!  </error>");
+        $output->writeln("<error>          </error>");
+        $output->writeln(PHP_EOL);
     }
 }
