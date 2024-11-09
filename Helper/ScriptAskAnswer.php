@@ -269,15 +269,11 @@ class ScriptAskAnswer
     private array $_appcodeModules = [];
 
     public function __construct(
-        public CustomerSession $_customerSession,
-        public Context $_context,
         public \Magento\Store\Model\StoreManagerInterface $_storeManager,
         public ObjectManagerInterface $_objectManager,
         public ModuleListInterface $_moduleList,
         public Reader $_moduleDir
     ) {
-
-        parent::__construct($_context);
     }
 
     public function loadNamespaces() {
