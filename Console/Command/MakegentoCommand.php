@@ -97,7 +97,7 @@ class MakegentoCommand extends Command
 
         $output->writeln("<info>You choose: $selectedModule</info>");
         if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module?'], $input, $output)){
-            $this->dbSchemaQuestionner($modulesPaths[$selectedModule], $input, $output);
+            $this->dbSchemaQuestionner($modulesPaths[(int) $selectedModule], $input, $output);
         }
         $output->writeln("<info>Vive Opengento</info>");
 
