@@ -6,18 +6,13 @@ namespace Opengento\MakegentoCli\Console\Command;
 
 use DirectoryIterator;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
-use Opengento\MakegentoCli\Generator\Generator;
 use Opengento\MakegentoCli\Maker\MakeEntity;
-use Opengento\MakegentoCli\Service\DbSchemaService;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Magento\Framework\App\State;
 use Magento\Framework\App\Area;
-use Symfony\Component\Console\Question\Question;
 
 /**
  * Copyright © OpenGento, All rights reserved.
