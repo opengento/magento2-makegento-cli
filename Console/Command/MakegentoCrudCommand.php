@@ -6,12 +6,12 @@ namespace Opengento\MakegentoCli\Console\Command;
 
 use Opengento\MakegentoCli\Maker\MakeCrud;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
+use Magento\Framework\App\Area;
+use Magento\Framework\App\State;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ChoiceQuestion;
-use Magento\Framework\App\State;
-use Magento\Framework\App\Area;
+use Symfony\Component\Console\Question\QuestionFactory;
 
 /**
  * Copyright © OpenGento, All rights reserved.
@@ -21,6 +21,7 @@ class MakegentoCrudCommand extends Command
 {
     public function __construct(
         private readonly ConsoleModuleSelector $consoleModuleSelector,
+        private readonly QuestionFactory $questionFactory,
         private readonly State $appState,
         private readonly MakeCrud $makeCrud,
     ) {
@@ -49,13 +50,15 @@ class MakegentoCrudCommand extends Command
     {
         $this->appState->setAreaCode(Area::AREA_GLOBAL);
 
-
         $commandHelper = $this->getHelper('question');
         $selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
 
-        $this->makeCrud->generate($input, $output, $selectedModule);
+        $question = $this->questionFactory->create([
+            'question' => '<info>Please enter the name of the entity</info>' . PHP_EOL,
+        ]);
+        $entityName = $commandHelper->ask($input, $output, $question);
 
-
+        $this->makeCrud->generateCrud($input, $output, $selectedModule, $entityName);
 
         $output->writeln("<info>Vive Opengento</info>");
         return Command::SUCCESS;
