@@ -21,4 +21,18 @@
             <argument name="dbSchemaCreator" xsi:type="object">Opengento\MakegentoCli\Service\DbSchemaCreator\Proxy</argument>
         </arguments>
     </type>
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

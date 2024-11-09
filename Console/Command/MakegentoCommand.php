@@ -9,6 +9,7 @@ use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Service\DbSchemaCreator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
@@ -62,30 +63,33 @@ class MakegentoCommand extends Command
             return Command::FAILURE;
         }
         $this->appState->setAreaCode(Area::AREA_GLOBAL);
-        $modulesPaths = [];
 
-        $modulesList = [];
+        $modulesPaths = [];
         try {
             foreach (new DirectoryIterator($path) as $vendorDir) {
                 if ($vendorDir->isDir() && !$vendorDir->isDot()) {
                     foreach (new DirectoryIterator($vendorDir->getPathname()) as $moduleDir) {
                         if ($moduleDir->isDir() && !$moduleDir->isDot()) {
-                            $modulesList[] = $vendorDir->getFilename() . "_" . $moduleDir->getFilename();
-                            $modulesPaths[$vendorDir->getFilename() . "_" . $moduleDir->getFilename()] = $moduleDir->getPathname();
+                            $modulesPaths[] = $vendorDir->getFilename() . "_" . $moduleDir->getFilename();
                         }
                     }
                 }
             }
-            sort($modulesList);
+            sort($modulesPaths);
         } catch (\Exception $e) {
             $output->writeln("<error>Erreur lors de l'accès au dossier : {$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
+
+        if (!is_dir($path)) {
+            $output->writeln("<error>app/code directory doesn't exist.</error>");
             return Command::FAILURE;
         }
 
         $helper = $this->getHelper('question');
         $question = new ChoiceQuestion(
             'Choose the module you want to work with',
-            $modulesList
+            $modulesPaths
         );
         $question->setErrorMessage('%s is an invalid choice.');
 
@@ -216,5 +220,37 @@ class MakegentoCommand extends Command
                 'indexes' => $indexes
             ]
         ];
+    }
+
+    /**
+     * Write Success Message
+     *
+     * @param OutputInterface $output
+     *
+     * @return void
+     */
+    protected function writeSuccessMessage(OutputInterface $output)
+    {
+        $output->writeln(PHP_EOL);
+        $output->writeln(' <bg=green;fg=white>          </>');
+        $output->writeln(' <bg=green;fg=white> Success! </>');
+        $output->writeln(' <bg=green;fg=white>          </>');
+        $output->writeln(PHP_EOL);
+    }
+
+    /**
+     * Write Error Message
+     *
+     * @param OutputInterface $output
+     *
+     * @return void
+     */
+    protected function writeErrorMessage(OutputInterface $output)
+    {
+        $output->writeln(PHP_EOL);
+        $output->writeln("<error>          </error>");
+        $output->writeln("<error>  Error!  </error>");
+        $output->writeln("<error>          </error>");
+        $output->writeln(PHP_EOL);
     }
 }
