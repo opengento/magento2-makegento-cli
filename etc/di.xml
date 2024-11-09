@@ -13,6 +13,7 @@
                 <item name="makegento:create-db" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCommand</item>
                 <item name="makegento:crud" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCrudCommand</item>
                 <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>
+                <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand</item>
                 <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>
             </argument>
         </arguments>
@@ -21,6 +22,12 @@
         <arguments>
             <argument name="state" xsi:type="object">Magento\Framework\App\State\Proxy</argument>
             <argument name="yesNoQuestionPerformer" xsi:type="object">Magento\Framework\Console\QuestionPerformer\YesNo\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Opengento\MakegentoCli\Maker\MakeCrud">
+        <arguments>
+            <argument name="input" xsi:type="object">Symfony\Component\Console\Input\Input</argument>
+            <argument name="output" xsi:type="object">Symfony\Component\Console\Output\Output</argument>
         </arguments>
     </type>
 </config>

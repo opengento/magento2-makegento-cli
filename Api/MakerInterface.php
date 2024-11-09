@@ -40,5 +40,5 @@ interface MakerInterface
     /**
      * Called after normal code generation: allows you to do anything.
      */
-    public function generate(InputInterface $input, Output $output, Generator $generator);
+    public function generate(Generator $generator);
 }

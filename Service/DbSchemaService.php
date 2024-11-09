@@ -60,10 +60,11 @@ class DbSchemaService
     {
         $modulePath .= '/etc/db_schema.xml';
         $xml = new \SimpleXMLElement('<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd"></schema>');
-        foreach ($dataTables as $tableName => $tableFields) {
+        foreach ($dataTables as $tableName => $tableDefinition) {
+            dump($tableName, $tableDefinition);
             $table = $xml->addChild('table');
             $table->addAttribute('name', $tableName);
-            foreach ($tableFields as $fieldName => $fieldAttributes) {
+            foreach ($tableDefinition['fields'] as $fieldName => $fieldAttributes) {
                 $column = $table->addChild('column');
                 $column->addAttribute('name', $fieldName);
                 foreach ($fieldAttributes as $attrName => $attrValue) {

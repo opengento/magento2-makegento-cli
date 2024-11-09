@@ -2,12 +2,9 @@
 
 namespace Opengento\MakegentoCli\Maker;
 
-use Opengento\MakegentoCli\Api\ConsoleStyle;
-use Opengento\MakegentoCli\Api\DependencyBuilder;
-use Opengento\MakegentoCli\Api\Generator;
-use Opengento\MakegentoCli\Api\InputConfiguration;
+use Opengento\MakegentoCli\Generator\Generator;
+use Opengento\MakegentoCli\Utils\InputConfiguration;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
 
 class MakeCrud extends AbstractMaker
 {
@@ -26,7 +23,7 @@ class MakeCrud extends AbstractMaker
         // TODO: Implement configureDependencies() method.
     }
 
-    public function generate(InputInterface $input, ConsoleStyle $io, Generator $generator)
+    public function generate(Generator $generator)
     {
         // TODO: Implement generate() method.
     }
