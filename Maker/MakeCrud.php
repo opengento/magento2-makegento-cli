@@ -9,7 +9,6 @@ use Opengento\MakegentoCli\Api\ConsoleStyle;
 use Opengento\MakegentoCli\Api\DependencyBuilder;
 use Opengento\MakegentoCli\Api\InputConfiguration;
 use Opengento\MakegentoCli\Generator\GeneratorCrud;
-use Opengento\MakegentoCli\Utils\InputConfiguration as OpengentoInputConfiguration;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;

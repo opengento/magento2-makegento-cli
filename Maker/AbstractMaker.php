@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Maker;
 
-use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Utils\ConsoleStyle;
 use Opengento\MakegentoCli\Api\MakerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * @method string getCommandDescription()
  */
 abstract class AbstractMaker implements MakerInterface
 {
+
     public function __construct(
+        private readonly ConsoleStyle    $consoleStyle,
+        protected readonly InputInterface $input,
+        protected readonly OutputInterface $output
     ) {
     }
 

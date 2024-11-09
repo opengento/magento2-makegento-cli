@@ -10,10 +10,11 @@
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-<!--                <item name="makegento:create-db" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCommand</item>-->
+                <item name="makegento:create-db" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCommand</item>
                 <item name="makegento:crud" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCrudCommand</item>
-<!--                <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>-->
-<!--                <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>-->
+                <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>
+                <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand</item>
+                <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>
             </argument>
         </arguments>
     </type>

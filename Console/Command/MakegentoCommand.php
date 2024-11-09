@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Console\Command;
 
-use DirectoryIterator;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
-use Opengento\MakegentoCli\Maker\MakeEntity;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
+use Opengento\MakegentoCli\Generator\GeneratorFactory;
 use Magento\Framework\App\State;
 use Magento\Framework\App\Area;
 
@@ -27,6 +26,8 @@ class MakegentoCommand extends Command
      */
     public function __construct(
         private readonly State $appState,
+        private readonly GeneratorFactory $generatorFactory,
+        private readonly MakeEntity $makeEntity,
         private readonly YesNo $yesNoQuestionPerformer
     ) {
         parent::__construct();
@@ -52,35 +53,10 @@ class MakegentoCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $path = BP . '/app/code';
 
-        if (!is_dir($path)) {
-            $output->writeln("<error>app/code directory doesn't exist.</error>");
-            return Command::FAILURE;
-        }
         $this->appState->setAreaCode(Area::AREA_GLOBAL);
 
-        $modulesPaths = [];
-        try {
-            foreach (new DirectoryIterator($path) as $vendorDir) {
-                if ($vendorDir->isDir() && !$vendorDir->isDot()) {
-                    foreach (new DirectoryIterator($vendorDir->getPathname()) as $moduleDir) {
-                        if ($moduleDir->isDir() && !$moduleDir->isDot()) {
-                            $modulesPaths[] = $vendorDir->getFilename() . "_" . $moduleDir->getFilename();
-                        }
-                    }
-                }
-            }
-            sort($modulesPaths);
-        } catch (\Exception $e) {
-            $output->writeln("<error>Erreur lors de l'accès au dossier : {$e->getMessage()}</error>");
-            return Command::FAILURE;
-        }
-
-        if (!is_dir($path)) {
-            $output->writeln("<error>app/code directory doesn't exist.</error>");
-            return Command::FAILURE;
-        }
+        $modulesPaths = $this->moduleService->getModulesPaths();
 
         $helper = $this->getHelper('question');
         $question = new ChoiceQuestion(
@@ -95,7 +71,7 @@ class MakegentoCommand extends Command
 
         $output->writeln("<info>You choose: $selectedModule</info>");
         if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module? [y/n]'], $input, $output)){
-            $this->makeEntity->generate($input, $output, $generator);
+            //$this->makeEntity->generate($input, $output, $generator);
         }
         $output->writeln("<info>Vive Opengento</info>");
 

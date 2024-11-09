@@ -12,7 +12,7 @@ use Symfony\Component\Console\Output\Output;
 
 class MakeModel extends AbstractMaker
 {
-    public function generate(InputInterface $input, Output $output, Generator $generator)
+    public function generate(Generator $generator)
     {
         // TODO: Implement generate() method.
     }
@@ -23,5 +23,15 @@ class MakeModel extends AbstractMaker
     public function interact(InputInterface $input, Command $command)
     {
         // TODO: Implement interact() method.
+    }
+
+    public static function getCommandName(): string
+    {
+        // TODO: Implement getCommandName() method.
+    }
+
+    public function configureCommand(Command $command, InputConfiguration $inputConfig)
+    {
+        // TODO: Implement configureCommand() method.
     }
 }
