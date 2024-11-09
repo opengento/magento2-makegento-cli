@@ -15,6 +15,7 @@ use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Magento\Framework\ObjectManagerInterface;
 use Opengento\MakegentoCli\Helper\ScriptAskAnswer;
+use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Magento\Framework\App\CacheInterface;
 
@@ -45,7 +46,7 @@ class HelperCodeCommand extends Command
             return Command::SUCCESS;
         }
 
-        $question = $this->objectManager->create(\Symfony\Component\Console\Question\ChoiceQuestion::class, [
+        $question = $this->objectManager->create(ChoiceQuestion::class, [
             'question' => '<info>' . $nextQuestion['question'] . '</info>' . PHP_EOL,
             'choices' => $this->helper->getListAction(),
             'default' => 1
@@ -58,7 +59,7 @@ class HelperCodeCommand extends Command
                 return Command::SUCCESS;
             }
             $choices = $this->helper->getCustomModules();
-            $question = $this->objectManager->create(\Symfony\Component\Console\Question\ChoiceQuestion::class, [
+            $question = $this->objectManager->create(ChoiceQuestion::class, [
                 'question' => '<info>' . $nextQuestion['question'] . '</info>',
                 'choices' => $choices,
                 'default' => 0
@@ -86,7 +87,7 @@ class HelperCodeCommand extends Command
                     $this->helper->loadNamespaces();
                     if ($nextQuestion['choices'] !== false) {
                         if (is_array($nextQuestion['choices'])) {
-                            $question = $this->objectManager->create(\Symfony\Component\Console\Question\ChoiceQuestion::class, [
+                            $question = $this->objectManager->create(ChoiceQuestion::class, [
                                 'question' => '<info>' . $nextQuestion['question'] . '</info>' . PHP_EOL,
                                 'choices' => $nextQuestion['choices'],
                                 'default' => 0
@@ -94,7 +95,7 @@ class HelperCodeCommand extends Command
                         } else {
                             $property = $nextQuestion['choices'];
                             $nextQuestion['choices'] = $this->helper->$property;
-                            $question = $this->objectManager->create(\Symfony\Component\Console\Question\ChoiceQuestion::class, [
+                            $question = $this->objectManager->create(ChoiceQuestion::class, [
                                 'question' => '<info>' . $nextQuestion['question'] . '</info>' . PHP_EOL,
                                 'choices' => $nextQuestion['choices'],
                                 'default' => 0

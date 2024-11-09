@@ -4,6 +4,7 @@ namespace Opengento\MakegentoCli\Maker;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Generator\Generator;
+use Opengento\MakegentoCli\Generator\GeneratorCrud;
 use Opengento\MakegentoCli\Utils\ConsoleStyle;
 use Opengento\MakegentoCli\Service\DbSchemaService;
 use Opengento\MakegentoCli\Utils\InputConfiguration;
@@ -16,11 +17,11 @@ use Symfony\Component\Console\Question\Question;
 
 class MakeEntity extends AbstractMaker
 {
-
     public function __construct(
         private readonly DbSchemaService $dbSchemaCreator,
         private readonly YesNo           $yesNoQuestionPerformer,
         private readonly QuestionHelper  $questionHelper,
+        private readonly GeneratorCrud $generatorCrud,
         ConsoleStyle $consoleStyle
     ) {
         parent::__construct($consoleStyle);
@@ -38,11 +39,11 @@ class MakeEntity extends AbstractMaker
             ->setHelp('This command allows you to create a new entity.');
     }
 
-    public function generate(InputInterface $input, OutputInterface $output, Generator $generator)
+    public function generate(InputInterface $input, OutputInterface $output)
     {
         $this->output = $output;
         $this->input = $input;
-        $this->dbSchemaQuestionner($generator->getModulePath());
+        $this->dbSchemaQuestionner($this->generatorCrud->getModulePath());
     }
 
     /**

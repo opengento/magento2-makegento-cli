@@ -26,10 +26,8 @@ class MakegentoCommand extends Command
      * @param State $appState
      */
     public function __construct(
-        private readonly State           $appState,
-        private readonly GeneratorFactory       $generatorFactory,
-        private readonly MakeEntity $makeEntity,
-        private readonly YesNo           $yesNoQuestionPerformer
+        private readonly State $appState,
+        private readonly YesNo $yesNoQuestionPerformer
     ) {
         parent::__construct();
     }
@@ -39,7 +37,7 @@ class MakegentoCommand extends Command
      */
     protected function configure()
     {
-        $this->setName('makegento:create-db')
+        $this->setName('makegento:create-dbschemas')
              ->setDescription('makegento let you do everything you want');
         parent::configure();
     }

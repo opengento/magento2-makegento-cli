@@ -1,21 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Opengento\MakegentoCli\Generator;
 
-class Generator
+/**
+ * Copyright © OpenGento, All rights reserved.
+ * See LICENSE bundled with this library for license details.
+ */
+abstract class Generator
 {
-
-    public function __construct(private string $moduleName, private string $modulePath)
-    {
-    }
-
-    public function getModuleName(): string
-    {
-        return $this->moduleName;
-    }
-
-    public function getModulePath(): string
-    {
-        return $this->modulePath;
-    }
 }

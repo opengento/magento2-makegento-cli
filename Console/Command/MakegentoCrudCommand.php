@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Console\Command;
 
+use Opengento\MakegentoCli\Maker\MakeCrud;
+use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -18,7 +20,9 @@ use Magento\Framework\App\Area;
 class MakegentoCrudCommand extends Command
 {
     public function __construct(
+        private readonly ConsoleModuleSelector $consoleModuleSelector,
         private readonly State $appState,
+        private readonly MakeCrud $makeCrud,
     ) {
         parent::__construct();
     }
@@ -44,6 +48,14 @@ class MakegentoCrudCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->appState->setAreaCode(Area::AREA_GLOBAL);
+
+
+        $commandHelper = $this->getHelper('question');
+        $selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
+
+        $this->makeCrud->generate($input, $output, $selectedModule);
+
+
 
         $output->writeln("<info>Vive Opengento</info>");
         return Command::SUCCESS;

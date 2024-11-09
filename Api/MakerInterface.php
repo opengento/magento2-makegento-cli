@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Api;
 
-use Opengento\MakegentoCli\Generator\Generator;
-use Opengento\MakegentoCli\Utils\InputConfiguration;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\Output;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Interface that all maker commands must implement.
@@ -20,19 +18,6 @@ use Symfony\Component\Console\Output\Output;
 interface MakerInterface
 {
     /**
-     * Return the command name for your maker (e.g. make:report).
-     */
-    public static function getCommandName(): string;
-
-    /**
-     * Configure the command: set description, input arguments, options, etc.
-     *
-     * By default, all arguments will be asked interactively. If you want
-     * to avoid that, use the $inputConfig->setArgumentAsNonInteractive() method.
-     */
-    public function configureCommand(Command $command, InputConfiguration $inputConfig);
-
-    /**
      * If necessary, you can use this method to interactively ask the user for input.
      */
     public function interact(InputInterface $input, Command $command);
@@ -40,5 +25,5 @@ interface MakerInterface
     /**
      * Called after normal code generation: allows you to do anything.
      */
-    public function generate(InputInterface $input, Output $output, Generator $generator);
+    public function generate(InputInterface $input, OutputInterface $output, string $selectedModule);
 }

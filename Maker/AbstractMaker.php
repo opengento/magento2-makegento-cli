@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Opengento\MakegentoCli\Maker;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
-use Opengento\MakegentoCli\Service\DbSchemaService;
 use Opengento\MakegentoCli\Utils\ConsoleStyle;
 use Opengento\MakegentoCli\Api\MakerInterface;
 use Symfony\Component\Console\Command\Command;
@@ -16,10 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
  */
 abstract class AbstractMaker implements MakerInterface
 {
-    protected InputInterface $input;
-
     public function __construct(
-        private readonly ConsoleStyle    $consoleStyle
     ) {
     }
 
