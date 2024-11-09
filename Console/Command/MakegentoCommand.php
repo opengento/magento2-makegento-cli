@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Opengento\MakegentoCli\Console\Command;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
+use Magento\Framework\Exception\LocalizedException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -27,7 +28,6 @@ class MakegentoCommand extends Command
     public function __construct(
         private readonly State $appState,
         private readonly GeneratorFactory $generatorFactory,
-        private readonly MakeEntity $makeEntity,
         private readonly YesNo $yesNoQuestionPerformer
     ) {
         parent::__construct();
@@ -50,6 +50,7 @@ class MakegentoCommand extends Command
      * @param OutputInterface $output
      *
      * @return int
+     * @throws LocalizedException
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -71,7 +72,7 @@ class MakegentoCommand extends Command
 
         $output->writeln("<info>You choose: $selectedModule</info>");
         if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module? [y/n]'], $input, $output)){
-            //$this->makeEntity->generate($input, $output, $generator);
+
         }
         $output->writeln("<info>Vive Opengento</info>");
 

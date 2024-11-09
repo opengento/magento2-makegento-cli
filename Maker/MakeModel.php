@@ -9,13 +9,11 @@ use Opengento\MakegentoCli\Utils\InputConfiguration;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\Output;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class MakeModel extends AbstractMaker
 {
-    public function generate(Generator $generator)
-    {
-        // TODO: Implement generate() method.
-    }
+
 
     /**
      * @return void
@@ -33,5 +31,10 @@ class MakeModel extends AbstractMaker
     public function configureCommand(Command $command, InputConfiguration $inputConfig)
     {
         // TODO: Implement configureCommand() method.
+    }
+
+    public function generate(InputInterface $input, OutputInterface $output, string $selectedModule)
+    {
+        // TODO: Implement generate() method.
     }
 }

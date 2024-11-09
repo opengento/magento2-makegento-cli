@@ -2,7 +2,6 @@
 
 namespace Opengento\MakegentoCli\Console\Command;
 
-use Opengento\MakegentoCli\Maker\MakeEntity;
 use Opengento\MakegentoCli\Maker\MakeModel;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Symfony\Component\Console\Command\Command;
