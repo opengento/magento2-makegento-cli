@@ -45,7 +45,12 @@ class MakegentoEntityCommand extends Command
         $this->output = $output;
         $this->questionHelper = $this->getHelper('question');
 
-        $modulesPaths = $this->moduleService->getAppModuleList();
+        try {
+            $modulesPaths = $this->moduleService->getAppModuleList();
+        } catch (\Exception $e) {
+            $this->output->writeln("<error>{$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
 
         $helper = $this->getHelper('question');
         $question = new ChoiceQuestion(
@@ -57,6 +62,7 @@ class MakegentoEntityCommand extends Command
         $selectedModule = $helper->ask($input, $output, $question);
 
         $this->dbSchemaQuestionner($this->moduleService->getModulePath($selectedModule));
+        return Command::SUCCESS;
     }
 
     /**
@@ -85,7 +91,6 @@ class MakegentoEntityCommand extends Command
                 $this->output
             );
         }
-        dump($dataTables);
         $this->dbSchemaCreator->createDbSchema($modulePath, $dataTables);
     }
 
