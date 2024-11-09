@@ -31,4 +31,29 @@ class ConsoleStyle extends SymfonyStyle
     {
         return $this->output;
     }
+
+    /**
+     * Write Success Message
+     *
+     * @param OutputInterface $output
+     *
+     * @return void
+     */
+    public function writeSuccessMessage(OutputInterface $output)
+    {
+        $output->writeln(PHP_EOL);
+        $output->writeln(' <bg=green;fg=white>          </>');
+        $output->writeln(' <bg=green;fg=white> Success! </>');
+        $output->writeln(' <bg=green;fg=white>          </>');
+        $output->writeln(PHP_EOL);
+    }
+
+    public function writeErrorMessage(OutputInterface $output)
+    {
+        $output->writeln(PHP_EOL);
+        $output->writeln("<error>          </error>");
+        $output->writeln("<error>  Error!  </error>");
+        $output->writeln("<error>          </error>");
+        $output->writeln(PHP_EOL);
+    }
 }

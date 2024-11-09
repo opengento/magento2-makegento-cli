@@ -2,7 +2,7 @@
 
 namespace Opengento\MakegentoCli\Service;
 
-class DbSchemaCreator
+class DbSchemaService
 {
     private array $fieldTypes = [
         'int',

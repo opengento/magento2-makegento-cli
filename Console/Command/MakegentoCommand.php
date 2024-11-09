@@ -6,7 +6,9 @@ namespace Opengento\MakegentoCli\Console\Command;
 
 use DirectoryIterator;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
-use Opengento\MakegentoCli\Service\DbSchemaCreator;
+use Opengento\MakegentoCli\Generator\Generator;
+use Opengento\MakegentoCli\Maker\MakeEntity;
+use Opengento\MakegentoCli\Service\DbSchemaService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -29,9 +31,10 @@ class MakegentoCommand extends Command
      * @param State $appState
      */
     public function __construct(
-        private readonly State $appState,
-        private readonly DbSchemaCreator $dbSchemaCreator,
-        private readonly YesNo $yesNoQuestionPerformer
+        private readonly State           $appState,
+        private readonly GeneratorFactory       $generatorFactory,
+        private readonly MakeEntity $makeEntity,
+        private readonly YesNo           $yesNoQuestionPerformer
     ) {
         parent::__construct();
     }
@@ -95,162 +98,14 @@ class MakegentoCommand extends Command
 
         $selectedModule = $helper->ask($input, $output, $question);
 
+        $generator = $this->generatorFactory->create(['moduleName' => $selectedModule, 'modulePath' => $modulesPaths[$selectedModule]]);
+
         $output->writeln("<info>You choose: $selectedModule</info>");
         if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module? [y/n]'], $input, $output)){
-            $this->dbSchemaQuestionner($modulesPaths[$selectedModule], $input, $output);
+            $this->makeEntity->generate($input, $output, $generator);
         }
         $output->writeln("<info>Vive Opengento</info>");
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     * @throws \Symfony\Component\Console\Exception\RuntimeException
-     * @return void
-     */
-    private function dbSchemaQuestionner(string $modulePath, InputInterface $input, OutputInterface $output)
-    {
-        /** @var \Symfony\Component\Console\Helper\QuestionHelper $helper */
-        $helper = $this->getHelper('question');
-        $dbSchemaExists = $this->dbSchemaCreator->moduleHasDbSchema($modulePath);
-        if ($dbSchemaExists) {
-            $output->writeln("<info>Database schema already exists</info>");
-            $output->writeln("<info>Database schema modification</info>");
-            $dataTables = $this->dbSchemaCreator->parseDbSchema($modulePath);
-        } else {
-            $output->writeln("<info>Database schema creation</info>");
-            $dataTables = [];
-        }
-        $addNewTable = true;
-        while ($addNewTable) {
-            $dataTables[] = $this->tableCreation($input, $output, $helper);
-            $addNewTable = $this->yesNoQuestionPerformer->execute(
-                ['Do you want to add a new table?'],
-                $input,
-                $output
-            );
-        }
-        $this->dbSchemaCreator->createDbSchema($modulePath, $dataTables, $helper);
-    }
-
-    private function tableCreation(InputInterface $input, OutputInterface $output, QuestionHelper $helper): array
-    {
-        $tableName = $helper->ask($input, $output, new Question('Enter the datatable name: '));
-        $tableFields = [];
-        $addNewField = true;
-        while ($addNewField) {
-            $tableFields[] = $this->fieldCreation($input, $output, $helper);
-            $addNewField = $this->yesNoQuestionPerformer->execute(
-                ['Do you want to add a new field? [y/n]'],
-                $input,
-                $output
-            );
-        }
-        $addConstraint = $this->yesNoQuestionPerformer->execute(
-            ['Do you want to add a constraint to this table? [y/n]'],
-            $input,
-            $output
-        );
-        return [$tableName => ['fields' => $tableFields, 'constraint' => $addConstraint]];
-    }
-
-    private function fieldCreation(InputInterface $input, OutputInterface $output, QuestionHelper $helper): array
-    {
-        $fieldName = $helper->ask($input, $output, new Question('Enter the field name: '));
-        $primary = null;
-        $indexes = [];
-        // Let's ask things to create database
-        $fieldTypeQuestion = new ChoiceQuestion(
-            'Choose the field type',
-            $this->dbSchemaCreator->getFieldTypes()
-        );
-        $fieldType = $helper->ask($input, $output, $fieldTypeQuestion);
-        $fieldDefinition['type'] = $fieldType;
-        if ($fieldType === 'varchar') {
-            $fieldLength = $helper->ask($input, $output, new Question('Enter the field length: '));
-            $fieldDefinition['length'] = $fieldLength;
-        }
-        if ($fieldType === 'int') {
-            $fieldLength = $helper->ask($input, $output, new Question('Enter the field padding (length): '));
-            $fieldDefinition['padding'] = $fieldLength;
-        }
-        if (is_null($primary)) {
-            $fieldDefinition['primary'] = $this->yesNoQuestionPerformer->execute(
-                ['Is this field a primary key? [y/n]'],
-                $input,
-                $output)
-            ;
-            $primary = $fieldName;
-        } else {
-            $defaultValue = $this->yesNoQuestionPerformer->execute(
-                ['Do you want to set a default value for this field? [y/n]'],
-                $input,
-                $output
-            );
-            if ($defaultValue) {
-                if ($fieldType === 'datetime' && $this->yesNoQuestionPerformer->execute(
-                        ['Do you want to set the default value to the current time? [y/n]'],
-                        $input,
-                        $output
-                    )) {
-                    $fieldDefinition['default'] = 'CURRENT_TIMESTAMP';
-                } else {
-                    $defaultValueQuestion = new Question('Enter the default value: ');
-                    $defaultValue = $helper->ask($input, $output, $defaultValueQuestion);
-                    $fieldDefinition['default'] = $defaultValue;
-                }
-            }
-            $indexes[$fieldName] = $this->yesNoQuestionPerformer->execute(
-                ['Do you want to add an index to this field? [y/n]'],
-                $input,
-                $output
-            );
-        }
-        $fieldDefinition['nullable'] = $this->yesNoQuestionPerformer->execute(
-            ['Is this field nullable? [y/n]'],
-            $input,
-            $output
-        );
-        return [
-            $fieldName => [
-                'field' => $fieldDefinition,
-                'primary' => $primary,
-                'indexes' => $indexes
-            ]
-        ];
-    }
-
-    /**
-     * Write Success Message
-     *
-     * @param OutputInterface $output
-     *
-     * @return void
-     */
-    protected function writeSuccessMessage(OutputInterface $output)
-    {
-        $output->writeln(PHP_EOL);
-        $output->writeln(' <bg=green;fg=white>          </>');
-        $output->writeln(' <bg=green;fg=white> Success! </>');
-        $output->writeln(' <bg=green;fg=white>          </>');
-        $output->writeln(PHP_EOL);
-    }
-
-    /**
-     * Write Error Message
-     *
-     * @param OutputInterface $output
-     *
-     * @return void
-     */
-    protected function writeErrorMessage(OutputInterface $output)
-    {
-        $output->writeln(PHP_EOL);
-        $output->writeln("<error>          </error>");
-        $output->writeln("<error>  Error!  </error>");
-        $output->writeln("<error>          </error>");
-        $output->writeln(PHP_EOL);
     }
 }

@@ -7,11 +7,8 @@
 
 namespace Opengento\MakegentoCli\Helper;
 
-use Laminas\Code\Reflection\ClassReflection;
 use Magento\Framework\ObjectManagerInterface;
-use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Customer\Model\Session as CustomerSession;
-use Magento\Setup\Exception;
 use phpDocumentor\Reflection\Types\ClassString;
 use Symfony\Component\Console\Exception\LogicException;
 use Magento\Framework\Module\Dir\Reader;
@@ -21,7 +18,7 @@ use Magento\Framework\App\Helper\Context;
 /**
  * Helper class.
  */
-class ScriptAskAnswer extends \Magento\Framework\App\Helper\AbstractHelper
+class ScriptAskAnswer
 {
     private array $_listActions = [
         'rewrite',
