@@ -8,6 +8,7 @@ use DirectoryIterator;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Service\DbSchemaCreator;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
@@ -91,7 +92,7 @@ class MakegentoCommand extends Command
         $selectedModule = $helper->ask($input, $output, $question);
 
         $output->writeln("<info>You choose: $selectedModule</info>");
-        if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module?'], $input, $output)){
+        if ($this->yesNoQuestionPerformer->execute(['Do you want to create or change the datatable schema for this module? [y/n]'], $input, $output)){
             $this->dbSchemaQuestionner($modulesPaths[$selectedModule], $input, $output);
         }
         $output->writeln("<info>Vive Opengento</info>");
@@ -120,71 +121,100 @@ class MakegentoCommand extends Command
         }
         $addNewTable = true;
         while ($addNewTable) {
-            $tableNameQuestion = new Question('Enter the database name: ');
-            $tablename = $helper->ask($input, $output, $tableNameQuestion);
-            $tableFields = [];
-            $addNewField = true;
-            while ($addNewField) {
-                $fieldNameQuestion = new Question('Enter the field name: ');
-                $fieldName = $helper->ask($input, $output, $fieldNameQuestion);
-                // Let's ask things to create database
-                $fieldTypeQuestion = new ChoiceQuestion(
-                    'Choose the field type',
-                    $this->dbSchemaCreator->getFieldTypes()
-                );
-                $fieldType = $helper->ask($input, $output, $fieldTypeQuestion);
-                $tableFields[$fieldName]['type'] = $fieldType;
-                if ($fieldType === 'varchar') {
-                    $fieldLengthQuestion = new Question('Enter the field length: ');
-                    $fieldLength = $helper->ask($input, $output, $fieldLengthQuestion);
-                    $tableFields[$fieldName]['length'] = $fieldLength;
-                }
-                if ($fieldType === 'int') {
-                    $fieldLengthQuestion = new Question('Enter the field padding (length): ');
-                    $fieldLength = $helper->ask($input, $output, $fieldLengthQuestion);
-                    $tableFields[$fieldName]['padding'] = $fieldLength;
-                }
-                $defaultValue = $this->yesNoQuestionPerformer->execute(
-                    ['Do you want to set a default value for this field?'],
-                    $input,
-                    $output
-                );
-                if ($defaultValue) {
-                    if ($fieldType === 'datetime' && $this->yesNoQuestionPerformer->execute(
-                            ['Do you want to set the default value to the current time?'],
-                            $input,
-                            $output
-                        )) {
-                        $tableFields[$fieldName]['default'] = 'CURRENT_TIMESTAMP';
-                    } else {
-                        $defaultValueQuestion = new Question('Enter the default value: ');
-                        $defaultValue = $helper->ask($input, $output, $defaultValueQuestion);
-                        $tableFields[$fieldName]['default'] = $defaultValue;
-                    }
-                }
-                $tableFields[$fieldName]['primary'] = $this->yesNoQuestionPerformer->execute(
-                    ['Is this field a primary key?'],
-                    $input,
-                    $output)
-                ;
-                $tableFields[$fieldName]['nullable'] = $this->yesNoQuestionPerformer->execute(
-                    ['Is this field nullable?'],
-                    $input,
-                    $output
-                );
-                $addNewField = $this->yesNoQuestionPerformer->execute(
-                    ['Do you want to add a new field?'],
-                    $input,
-                    $output
-                );
-            }
-            $dataTables[$tablename] = $tableFields;
+            $dataTables[] = $this->tableCreation($input, $output, $helper);
             $addNewTable = $this->yesNoQuestionPerformer->execute(
                 ['Do you want to add a new table?'],
                 $input,
                 $output
             );
         }
-        $this->dbSchemaCreator->createDbSchema($modulePath, $dataTables);
+        $this->dbSchemaCreator->createDbSchema($modulePath, $dataTables, $helper);
+    }
+
+    private function tableCreation(InputInterface $input, OutputInterface $output, QuestionHelper $helper): array
+    {
+        $tableName = $helper->ask($input, $output, new Question('Enter the datatable name: '));
+        $tableFields = [];
+        $addNewField = true;
+        while ($addNewField) {
+            $tableFields[] = $this->fieldCreation($input, $output, $helper);
+            $addNewField = $this->yesNoQuestionPerformer->execute(
+                ['Do you want to add a new field? [y/n]'],
+                $input,
+                $output
+            );
+        }
+        $addConstraint = $this->yesNoQuestionPerformer->execute(
+            ['Do you want to add a constraint to this table? [y/n]'],
+            $input,
+            $output
+        );
+        return [$tableName => ['fields' => $tableFields, 'constraint' => $addConstraint]];
+    }
+
+    private function fieldCreation(InputInterface $input, OutputInterface $output, QuestionHelper $helper): array
+    {
+        $fieldName = $helper->ask($input, $output, new Question('Enter the field name: '));
+        $primary = null;
+        $indexes = [];
+        // Let's ask things to create database
+        $fieldTypeQuestion = new ChoiceQuestion(
+            'Choose the field type',
+            $this->dbSchemaCreator->getFieldTypes()
+        );
+        $fieldType = $helper->ask($input, $output, $fieldTypeQuestion);
+        $fieldDefinition['type'] = $fieldType;
+        if ($fieldType === 'varchar') {
+            $fieldLength = $helper->ask($input, $output, new Question('Enter the field length: '));
+            $fieldDefinition['length'] = $fieldLength;
+        }
+        if ($fieldType === 'int') {
+            $fieldLength = $helper->ask($input, $output, new Question('Enter the field padding (length): '));
+            $fieldDefinition['padding'] = $fieldLength;
+        }
+        if (is_null($primary)) {
+            $fieldDefinition['primary'] = $this->yesNoQuestionPerformer->execute(
+                ['Is this field a primary key? [y/n]'],
+                $input,
+                $output)
+            ;
+            $primary = $fieldName;
+        } else {
+            $defaultValue = $this->yesNoQuestionPerformer->execute(
+                ['Do you want to set a default value for this field? [y/n]'],
+                $input,
+                $output
+            );
+            if ($defaultValue) {
+                if ($fieldType === 'datetime' && $this->yesNoQuestionPerformer->execute(
+                        ['Do you want to set the default value to the current time? [y/n]'],
+                        $input,
+                        $output
+                    )) {
+                    $fieldDefinition['default'] = 'CURRENT_TIMESTAMP';
+                } else {
+                    $defaultValueQuestion = new Question('Enter the default value: ');
+                    $defaultValue = $helper->ask($input, $output, $defaultValueQuestion);
+                    $fieldDefinition['default'] = $defaultValue;
+                }
+            }
+            $indexes[$fieldName] = $this->yesNoQuestionPerformer->execute(
+                ['Do you want to add an index to this field? [y/n]'],
+                $input,
+                $output
+            );
+        }
+        $fieldDefinition['nullable'] = $this->yesNoQuestionPerformer->execute(
+            ['Is this field nullable? [y/n]'],
+            $input,
+            $output
+        );
+        return [
+            $fieldName => [
+                'field' => $fieldDefinition,
+                'primary' => $primary,
+                'indexes' => $indexes
+            ]
+        ];
     }
 }

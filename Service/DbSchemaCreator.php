@@ -5,20 +5,20 @@ namespace Opengento\MakegentoCli\Service;
 class DbSchemaCreator
 {
     private array $fieldTypes = [
-        'blob',
+        'int',
+        'smallint',
+        'varchar',
         'boolean',
         'date',
         'datetime',
-        'decimal',
+        'timestamp',
         'float',
-        'int',
+        'blob',
+        'decimal',
         'json',
         'real',
-        'smallint',
         'text',
-        'timestamp',
-        'varbinary',
-        'varchar'
+        'varbinary'
     ];
 
     public function getFieldTypes(): array
@@ -42,7 +42,7 @@ class DbSchemaCreator
         $tables = [];
         foreach ($xml->table as $table) {
             $tableName = (string) $table['name'];
-            $fields = [];
+            $columns = [];
             foreach ($table->column as $column) {
                 $columnName = (string) $column['name'];
                 $attributes = [];
