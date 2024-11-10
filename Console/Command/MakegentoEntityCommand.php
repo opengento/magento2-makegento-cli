@@ -5,7 +5,7 @@ namespace Opengento\MakegentoCli\Console\Command;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Generator\GeneratorFactory;
 use Opengento\MakegentoCli\Service\DbSchemaService;
-use Opengento\MakegentoCli\Service\ModulesService;
+use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,8 +24,8 @@ class MakegentoEntityCommand extends Command
     public function __construct(
         private readonly DbSchemaService $dbSchemaCreator,
         private readonly YesNo           $yesNoQuestionPerformer,
-        private readonly ModulesService   $moduleService,
-        private readonly GeneratorFactory       $generatorFactory
+        private readonly GeneratorFactory       $generatorFactory,
+        private readonly ConsoleModuleSelector $moduleSelector
     ) {
         parent::__construct();
     }
@@ -46,22 +46,13 @@ class MakegentoEntityCommand extends Command
         $this->questionHelper = $this->getHelper('question');
 
         try {
-            $modulesPaths = $this->moduleService->getAppModuleList();
+            $selectedModule = $this->moduleSelector->execute($input, $output, $this->questionHelper, true);
         } catch (\Exception $e) {
             $this->output->writeln("<error>{$e->getMessage()}</error>");
             return Command::FAILURE;
         }
 
-        $helper = $this->getHelper('question');
-        $question = new ChoiceQuestion(
-            'Choose the module you want to work with',
-            $modulesPaths
-        );
-        $question->setErrorMessage('%s is an invalid choice.');
-
-        $selectedModule = $helper->ask($input, $output, $question);
-
-        $this->dbSchemaQuestionner($this->moduleService->getModulePath($selectedModule));
+        $this->dbSchemaQuestionner($this->moduleSelector->getModulePath($selectedModule));
         return Command::SUCCESS;
     }
 
@@ -101,6 +92,7 @@ class MakegentoEntityCommand extends Command
         $addNewField = true;
         $primary = null;
         $indexes = [];
+        $constraints = [];
         while ($addNewField) {
             $tableFields = array_merge($tableFields, $this->fieldCreation($primary, $indexes));
             $addNewField = $this->yesNoQuestionPerformer->execute(
@@ -114,9 +106,49 @@ class MakegentoEntityCommand extends Command
             $this->input,
             $this->output
         );
+        if ($addConstraint) {
+            $constraintName = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the constraint name: '));
+            $constraintTypeQuestion = new ChoiceQuestion(
+                'Choose the constraint type',
+                ['unique', 'foreign']
+            );
+            $constraintType = $this->questionHelper->ask($this->input, $this->output, $constraintTypeQuestion);
+            $constraintDefinition = ['type' => $constraintType];
+            if ($constraintType === 'foreign') {
+                $constraintDefinition['referenceTable'] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the reference table: '));
+                $constraintDefinition['referenceField'] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the reference field: '));
+            }
+            $constraints[$constraintName] = $constraintDefinition;
+        }
+        $addIndex = $this->yesNoQuestionPerformer->execute(
+            ['Do you want to add an index to this table? [y/n]'],
+            $this->input,
+            $this->output
+        );
+        if ($addIndex) {
+            $indexName = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the index name: '));
+            $indexFields = [];
+            $indexType = $this->questionHelper->ask($this->input, $this->output, new ChoiceQuestion(
+                'Choose the index type',
+                ['btree', 'fulltext', 'hash']
+            ));
+            $addNewIndexField = true;
+            while ($addNewIndexField) {
+                $indexFields[] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the index field: '));
+                $addNewIndexField = $this->yesNoQuestionPerformer->execute(
+                    ['Do you want to add a new field to the index? [y/n]'],
+                    $this->input,
+                    $this->output
+                );
+            }
+            $indexes[$indexName] = [
+                'type' => $indexType,
+                'fields' => $indexFields
+            ];
+        }
         return [$tableName => [
             'fields' => $tableFields,
-            'constraint' => $addConstraint,
+            'constraints' => $constraints,
             'primary' => $primary,
             'indexes' => $indexes,
         ]];
@@ -140,6 +172,7 @@ class MakegentoEntityCommand extends Command
             $fieldLength = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the field padding (length): '));
             $fieldDefinition['padding'] = $fieldLength;
         }
+        /** @todo manage many to many relations */
         if (is_null($primary)) {
             $fieldDefinition['primary'] = $this->yesNoQuestionPerformer->execute(
                 ['Is this field a primary key? [y/n]'],
