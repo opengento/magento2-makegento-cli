@@ -11,9 +11,7 @@ use Magento\Framework\Module\ModuleListInterface;
 use Symfony\Component\Console\Helper\HelperInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\ChoiceQuestionFactory;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\QuestionFactory;
 
 class ConsoleModuleSelector

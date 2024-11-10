@@ -72,6 +72,12 @@ class DbSchemaService
                     }
                     $constraintAttributes[$attrName] = (string)$attrValue;
                 }
+                foreach ($constraint->column ?? [] as $column) {
+                    if (!isset($constraintAttributes['columns'])) {
+                        $constraintAttributes['columns'] = [];
+                    }
+                    $constraintAttributes['columns'][] = $column;
+                }
                 $constraints[$constraintName] = $constraintAttributes;
             }
             $indexes = [];
@@ -103,7 +109,6 @@ class DbSchemaService
      */
     public function createDbSchema(string $modulePath, array $dataTables): void
     {
-        dump($dataTables);
         $modulePath .= '/etc/db_schema.xml';
         $xml = new \SimpleXMLElement('<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd"></schema>');
         foreach ($dataTables as $tableName => $tableDefinition) {
@@ -129,19 +134,22 @@ class DbSchemaService
                 /** @todo manage many to many */
                 $primary = $table->addChild('constraint');
                 $primary->addAttribute('xsi:type', 'primary');
-                $primary->addAttribute('name', 'PRIMARY');
                 $primary->addAttribute('referenceId', 'PRIMARY');
                 $primary->addChild('column')->addAttribute('name', $tableDefinition['primary']);
             }
             foreach ($tableDefinition['constraints'] as $constraintName => $constraintAttributes) {
                 $constraint = $table->addChild('constraint');
-                $constraint->addAttribute('xsi:type', $constraintAttributes['type'] ?? 'foreign');
-                $constraint->addAttribute('name', $constraintName);
+                $constraint->addAttribute('xsi:type', $constraintAttributes['type']);
                 $constraint->addAttribute('referenceId', $constraintName);
-                $constraint->addChild('column')->addAttribute('name', $constraintAttributes['column']);
-                $constraint->addChild('reference')->addAttribute('table', $constraintAttributes['referenceTable']);
-                $constraint->addChild('reference')->addAttribute('column', $constraintAttributes['referenceColumn']);
-                $constraint->addChild('onDelete')->addAttribute('cascade', 'true');
+                if ($constraintAttributes['type'] === 'foreign') {
+                    $constraint->addChild('reference')->addAttribute('table', $constraintAttributes['referenceTable']);
+                    $constraint->addChild('reference')->addAttribute('column', $constraintAttributes['referenceColumn']);
+                    $constraint->addChild('onDelete')->addAttribute('cascade', 'true');
+                } else {
+                    foreach ($constraintAttributes['columns'] as $column) {
+                        $constraint->addChild('column')->addAttribute('name', $column);
+                    }
+                }
             }
         }
         $xml->asXML($modulePath);
