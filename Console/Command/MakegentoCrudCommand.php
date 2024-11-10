@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Opengento\MakegentoCli\Console\Command;
 
 use Opengento\MakegentoCli\Maker\MakeCrud;
+use Opengento\MakegentoCli\Utils\ConsoleCrudEntitySelector;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Magento\Framework\App\Area;
 use Magento\Framework\App\State;
@@ -21,6 +22,7 @@ class MakegentoCrudCommand extends Command
 {
     public function __construct(
         private readonly ConsoleModuleSelector $consoleModuleSelector,
+        private readonly ConsoleCrudEntitySelector $consoleCrudEntitySelector,
         private readonly QuestionFactory $questionFactory,
         private readonly State $appState,
         private readonly MakeCrud $makeCrud,
@@ -52,11 +54,7 @@ class MakegentoCrudCommand extends Command
 
         $commandHelper = $this->getHelper('question');
         $selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
-
-        $question = $this->questionFactory->create([
-            'question' => '<info>Please enter the name of the entity</info>' . PHP_EOL,
-        ]);
-        $entityName = $commandHelper->ask($input, $output, $question);
+        $entityName = $this->consoleCrudEntitySelector->execute($input, $output, $commandHelper, $selectedModule);
 
         $this->makeCrud->generateCrud($input, $output, $selectedModule, $entityName);
 

@@ -31,7 +31,7 @@ class MakeCrud extends AbstractMaker
         string $selectedModule,
         string $entityName,
     ): void {
-        $this->generatorCrud->setCurrentModule($selectedModule);
+        $this->generatorCrud->setCurrentModuleName($selectedModule);
         $this->generatorCrud->setEntityName($entityName);
 
         // Generate route

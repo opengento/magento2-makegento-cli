@@ -15,7 +15,8 @@
         "ext-json": "*",
         "magento/framework": "^103.0",
         "magento/module-config": "*",
-        "magento/module-store": "*"
+        "magento/module-store": "*",
+        "ext-simplexml": "*"
     },
     "require-dev": {
         "magento/magento-coding-standard": "^5",

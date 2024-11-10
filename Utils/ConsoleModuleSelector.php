@@ -16,6 +16,10 @@ use Symfony\Component\Console\Question\ChoiceQuestionFactory;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Question\QuestionFactory;
 
+/**
+ * Copyright © OpenGento, All rights reserved.
+ * See LICENSE bundled with this library for license details.
+ */
 class ConsoleModuleSelector
 {
     public const MODULE_REGISTRATION_PATTERN = 'app/code/*/*/registration.php';
