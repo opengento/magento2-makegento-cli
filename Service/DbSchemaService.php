@@ -45,10 +45,20 @@ class DbSchemaService
         foreach ($xml->table as $table) {
             $primary = null;
             $tableName = (string)$table['name'];
+            $tableAttributes = [];
+            foreach ($table->attributes() as $attrName => $attrValue) {
+                if ($attrName === 'name') {
+                    continue;
+                }
+                $tableAttributes[$attrName] = (string)$attrValue;
+            }
             $columns = [];
             foreach ($table->column as $column) {
                 $columnName = (string)$column['name'];
-                $attributes = [];
+                $type = (string)$column->attributes('xsi', true)['type'];
+                $attributes = [
+                    'type' => $type
+                ];
                 foreach ($column->attributes() as $attrName => $attrValue) {
                     if ($attrName === 'name') {
                         continue;
@@ -98,7 +108,8 @@ class DbSchemaService
                     'fields' => $columns,
                     'constraints' => $constraints,
                     'primary' => $primary,
-                    'indexes' => $indexes
+                    'indexes' => $indexes,
+                    'table_attr' => $tableAttributes
                 ];
         }
         return $tables;
@@ -115,10 +126,17 @@ class DbSchemaService
             $this->checkTableDefinition($tableDefinition);
             $table = $xml->addChild('table');
             $table->addAttribute('name', $tableName);
+            foreach ($tableDefinition['table_attr'] as $attrName => $attrValue) {
+                $table->addAttribute($attrName, $attrValue);
+            }
             foreach ($tableDefinition['fields'] as $fieldName => $fieldAttributes) {
                 $column = $table->addChild('column');
                 $column->addAttribute('name', $fieldName);
                 foreach ($fieldAttributes as $attrName => $attrValue) {
+                    if ($attrName === 'type') {
+                        $column->addAttribute('xsi:type', $attrValue, 'http://www.w3.org/2001/XMLSchema-instance');
+                        continue;
+                    }
                     $column->addAttribute($attrName, $attrValue);
                 }
             }
@@ -133,18 +151,20 @@ class DbSchemaService
             if (isset($tableDefinition['primary'])) {
                 /** @todo manage many to many */
                 $primary = $table->addChild('constraint');
-                $primary->addAttribute('xsi:type', 'primary');
+                $primary->addAttribute('xsi:type', 'primary', 'http://www.w3.org/2001/XMLSchema-instance');
                 $primary->addAttribute('referenceId', 'PRIMARY');
                 $primary->addChild('column')->addAttribute('name', $tableDefinition['primary']);
             }
             foreach ($tableDefinition['constraints'] as $constraintName => $constraintAttributes) {
                 $constraint = $table->addChild('constraint');
-                $constraint->addAttribute('xsi:type', $constraintAttributes['type']);
+                $constraint->addAttribute('xsi:type', $constraintAttributes['type'], 'http://www.w3.org/2001/XMLSchema-instance');
                 $constraint->addAttribute('referenceId', $constraintName);
                 if ($constraintAttributes['type'] === 'foreign') {
-                    $constraint->addChild('reference')->addAttribute('table', $constraintAttributes['referenceTable']);
-                    $constraint->addChild('reference')->addAttribute('column', $constraintAttributes['referenceColumn']);
-                    $constraint->addChild('onDelete')->addAttribute('cascade', 'true');
+                    $constraint->addAttribute('table', $constraintAttributes['table']);
+                    $constraint->addAttribute('column', $constraintAttributes['column']);
+                    $constraint->addAttribute('referenceTable', $constraintAttributes['referenceTable']);
+                    $constraint->addAttribute('referenceColumn', $constraintAttributes['referenceColumn']);
+                    $constraint->addAttribute('onDelete', $constraintAttributes['onDelete']);
                 } else {
                     foreach ($constraintAttributes['columns'] as $column) {
                         $constraint->addChild('column')->addAttribute('name', $column);

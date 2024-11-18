@@ -21,7 +21,6 @@ use Symfony\Component\Console\Question\QuestionFactory;
 class ConsoleModuleSelector
 {
     public const MODULE_REGISTRATION_PATTERN = 'app/code/*/*/registration.php';
-    private $rootDir;
 
     private array $modulePaths = [];
 
@@ -31,10 +30,17 @@ class ConsoleModuleSelector
         private readonly Reader              $moduleReader,
         private readonly QuestionFactory     $questionFactory
     ) {
-        $this->rootDir = $this->filesystem->getDirectoryRead(DirectoryList::ROOT);
     }
 
-    public function execute(InputInterface $input, OutputInterface $output, HelperInterface $commandHelper, $includeVendor = false): string
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @param HelperInterface $commandHelper
+     * @param bool $includeVendor
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public function execute(InputInterface $input, OutputInterface $output, HelperInterface $commandHelper, bool $includeVendor = false): string
     {
         // Get all the modules
         $modules = $this->getInstalledModules($includeVendor);
@@ -48,7 +54,13 @@ class ConsoleModuleSelector
 
         $question->setAutocompleterValues($modules);
 
-        return $commandHelper->ask($input, $output, $question);
+        $moduleName = $commandHelper->ask($input, $output, $question);
+
+        if (!is_string($moduleName)) {
+            throw new \InvalidArgumentException('You did not choose any module');
+        }
+
+        return $moduleName;
     }
 
     private function getInstalledModules($includeVendor = false): array

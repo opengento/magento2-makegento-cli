@@ -2,6 +2,7 @@
 
 namespace Opengento\MakegentoCli\Console\Command;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Exception\InvalidArrayException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
@@ -26,8 +27,8 @@ class MakegentoEntityCommand extends Command
     public function __construct(
         private readonly DbSchemaService       $dbSchemaCreator,
         private readonly YesNo                 $yesNoQuestionPerformer,
-        private readonly GeneratorFactory      $generatorFactory,
         private readonly ConsoleModuleSelector $moduleSelector,
+        private readonly ResourceConnection    $resourceConnection,
     )
     {
         parent::__construct();
@@ -115,6 +116,29 @@ class MakegentoEntityCommand extends Command
         if ($tableName == '') {
             return [];
         }
+        $engine = $this->questionHelper->ask(
+            $this->input,
+            $this->output,
+            new ChoiceQuestion(
+                'Choose the table engine <info>(default : innodb)</info>',
+                ['innodb', 'memory'],
+                'innodb'
+            )
+        );
+        $resource = $this->questionHelper->ask(
+            $this->input,
+            $this->output,
+            new ChoiceQuestion(
+                'Choose the table resource <info>(default : default)</info>',
+                ['default', 'sales', 'checkout'],
+                'default'
+            )
+        );
+        $comment = $this->questionHelper->ask(
+            $this->input,
+            $this->output,
+            new Question('Enter the table comment <info>(default : Table comment)</info>: ', 'Table comment')
+        );
         $tableFields = [];
         $addNewField = true;
         $primary = false;
@@ -134,7 +158,7 @@ class MakegentoEntityCommand extends Command
         $addConstraint = true;
         while ($addConstraint) {
             try {
-                $constraint = $this->createConstraint($tableFields);
+                $constraint = $this->createConstraint($tableFields, $tableName);
                 if (empty($constraint)) {
                     $addConstraint = false;
                 } else {
@@ -162,6 +186,11 @@ class MakegentoEntityCommand extends Command
             'constraints' => $constraints,
             'primary' => $primary,
             'indexes' => $indexes,
+            'table_attr' => [
+                'engine' => $engine,
+                'resource' => $resource,
+                'comment' => $comment
+            ]
         ]];
     }
 
@@ -305,7 +334,7 @@ class MakegentoEntityCommand extends Command
      * @return array|array[]
      * @throws InvalidArrayException
      */
-    private function createConstraint($fields): array
+    private function createConstraint($fields, $tableName): array
     {
         $constraintName = $this->questionHelper->ask(
             $this->input,
@@ -321,8 +350,29 @@ class MakegentoEntityCommand extends Command
         ));
         $constraintDefinition = ['type' => $constraintType];
         if ($constraintType === 'foreign') {
-            $constraintDefinition['referenceTable'] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the reference table: '));
-            $constraintDefinition['referenceField'] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the reference field: '));
+            $this->output->writeln("<info>Note that referenceId will be automatically generated to fit with standards</info>");
+            $constraintDefinition['table'] = $tableName;
+
+            $fieldSelection = new Question('Choose the column: '.PHP_EOL);
+            $fieldSelection->setAutocompleterValues(array_keys($fields));
+            $constraintDefinition['column'] = $this->questionHelper->ask($this->input, $this->output, $fieldSelection);
+
+            $tableQuestion = new Question('Choose the reference table <info>begin typing to start autocompletion</info>: '.PHP_EOL);
+            $tableQuestion->setAutocompleterValues($this->getAllTables());
+            $constraintDefinition['referenceTable'] = $this->questionHelper->ask($this->input, $this->output, $tableQuestion);
+
+            $tableFields = $this->getTableFields($constraintDefinition['referenceTable']);
+            $referenceFieldSelection = new Question('Choose the reference field <info>begin typing to start autocompletion</info>: '.PHP_EOL, $tableFields['identity']);
+            $referenceFieldSelection->setAutocompleterValues($tableFields['fields']);
+            $constraintDefinition['referenceColumn'] = $this->questionHelper->ask($this->input, $this->output, $referenceFieldSelection);
+
+            $constraintDefinition['onDelete'] = $this->questionHelper->ask($this->input, $this->output, new ChoiceQuestion(
+                'Choose the onDelete action <info>(default : CASCADE)</info>',
+                ['CASCADE', 'RESTRICT', 'SET NULL', 'NO ACTION'],
+                'CASCADE'
+            ));
+
+            $constraintName = $this->formatForeignKeyReference($constraintDefinition);
         } else {
             $columns = [];
             $addColumn = true;
@@ -342,5 +392,36 @@ class MakegentoEntityCommand extends Command
             $constraintDefinition['columns'] = $columns;
         }
         return [$constraintName => $constraintDefinition];
+    }
+
+    private function getAllTables(): array
+    {
+        $connection = $this->resourceConnection->getConnection();
+        $tables = $connection->getTables();
+        $tableNames = [];
+        foreach ($tables as $table) {
+            $tableNames[] = $table;
+        }
+        return $tableNames;
+    }
+
+    private function getTableFields($tableName): array
+    {
+        $connection = $this->resourceConnection->getConnection();
+        $table = $connection->describeTable($tableName);
+        $fields = [];
+        $primaryKey = '';
+        foreach ($table as $name => $field) {
+            if ($field['PRIMARY'] === true) {
+                $primaryKey = $name;
+            }
+            $fields[] = $name;
+        }
+        return ['fields' => $fields, 'identity' => $primaryKey];
+    }
+
+    private function formatForeignKeyReference($constraintDefinition): string
+    {
+        return strtoupper($constraintDefinition['table'] . '_' . $constraintDefinition['column'] . '_' . $constraintDefinition['referenceTable'] . '_' . $constraintDefinition['referenceColumn']);
     }
 }

@@ -47,6 +47,8 @@ You can find all the related commands by running the following command:
 bin/magento list makegento
 ```
 
+### Commands documentation
+[Make entity docs](docs/make-entity.md)
 
 ## Support
 
@@ -55,6 +57,7 @@ Raise a new [request](https://github.com/opengento/magento2-makegento-cli/issues
 ## Authors
 
 - **Opengento Community** - *Lead* - [![Twitter Follow](https://img.shields.io/twitter/follow/opengento.svg?style=social)](https://twitter.com/opengento)
+- **Contributors** - *Contributor* - [![GitHub contributors](https://img.shields.io/github/contributors/opengento/magento2-makegento-cli.svg?style=flat-square)](https://github.com/opengento/magento2-makegento-cli/graphs/contributors)
 
 
 
