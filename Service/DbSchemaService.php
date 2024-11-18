@@ -45,9 +45,19 @@ class DbSchemaService
         foreach ($xml->table as $table) {
             $primary = null;
             $tableName = (string)$table['name'];
+            foreach ($table->attributes() as $attrName => $attrValue) {
+                if ($attrName === 'name') {
+                    continue;
+                }
+                $tables[$tableName]['table_attr'][$attrName] = (string)$attrValue;
+            }
             $columns = [];
             foreach ($table->column as $column) {
                 $columnName = (string)$column['name'];
+                $columns[$columnName] = [
+                    'field_name' => $columnName,
+                    'field_type' => (string)$column->attributes('xsi', true)['type']
+                ];
                 $attributes = [];
                 foreach ($column->attributes() as $attrName => $attrValue) {
                     if ($attrName === 'name') {
@@ -55,7 +65,7 @@ class DbSchemaService
                     }
                     $attributes[$attrName] = (string)$attrValue;
                 }
-                $columns[$columnName] = $attributes;
+                $columns[$columnName]['field_attr'] = $attributes;
             }
             $domPrimary = $table->xpath('constraint[@xsi:type="primary"]');
             if ($domPrimary) {
@@ -95,6 +105,7 @@ class DbSchemaService
             }
             $tables[$tableName] =
                 [
+                    'table_name' => $tableName,
                     'fields' => $columns,
                     'constraints' => $constraints,
                     'primary' => $primary,

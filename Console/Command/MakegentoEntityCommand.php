@@ -5,6 +5,7 @@ namespace Opengento\MakegentoCli\Console\Command;
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Exception\InvalidArrayException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
+use Opengento\MakegentoCli\Generator\GeneratorEntity;
 use Opengento\MakegentoCli\Generator\GeneratorFactory;
 use Opengento\MakegentoCli\Service\DbSchemaService;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
@@ -26,7 +27,7 @@ class MakegentoEntityCommand extends Command
     public function __construct(
         private readonly DbSchemaService       $dbSchemaCreator,
         private readonly YesNo                 $yesNoQuestionPerformer,
-        private readonly GeneratorFactory      $generatorFactory,
+        private readonly GeneratorEntity       $generatorEntity,
         private readonly ConsoleModuleSelector $moduleSelector,
     )
     {
@@ -93,7 +94,7 @@ class MakegentoEntityCommand extends Command
         }
         if (!empty($dataTables)) {
             try {
-                $this->dbSchemaCreator->createDbSchema($modulePath, $dataTables);
+                $this->generatorEntity->generateDbSchema(['table_declarations' => $dataTables], $modulePath . '/etc/db_schema.xml');
                 $this->output->writeln("<info>Database schema created</info>");
             } catch (TableDefinitionException $e) {
                 $this->output->writeln("<error>{$e->getMessage()}</error>");
@@ -129,7 +130,7 @@ class MakegentoEntityCommand extends Command
             }
         }
         if (empty($tableFields) || count($tableFields) === 1) {
-            throw new InvalidArrayException('Table fields cannot be empty');
+            throw new InvalidArrayException(__('Table fields cannot be empty'));
         }
         $addConstraint = true;
         while ($addConstraint) {
@@ -158,10 +159,15 @@ class MakegentoEntityCommand extends Command
             }
         }
         return [$tableName => [
+            'table_name' => $tableName,
             'fields' => $tableFields,
             'constraints' => $constraints,
             'primary' => $primary,
             'indexes' => $indexes,
+            'table_attr' => [
+                'engine' => 'innodb',
+                'comment' => 'Table comment'
+            ]
         ]];
     }
 
@@ -192,10 +198,13 @@ class MakegentoEntityCommand extends Command
             }
             return [$fieldName =>
                 [
-                    'padding' => $padding,
-                    'type' => 'int',
-                    'unsigned' => "true",
-                    'nullable' => "false"
+                    'field_name' => $fieldName,
+                    'field_type' => 'int',
+                    'field_attr' => [
+                        'padding' => $padding,
+                        'unsigned' => "true",
+                        'nullable' => "false",
+                    ]
                 ]
             ];
         }
@@ -213,14 +222,18 @@ class MakegentoEntityCommand extends Command
         );
         $fieldTypeQuestion->setAutocompleterValues($this->dbSchemaCreator->getFieldTypes());
         $fieldType = $this->questionHelper->ask($this->input, $this->output, $fieldTypeQuestion);
-        $fieldDefinition['type'] = $fieldType;
+        $fieldDefinition = [
+            'field_name' => $fieldName,
+            'field_type' => $fieldType,
+            'field_attr' => []
+        ];
         if ($fieldType === 'varchar') {
             $fieldLength = $this->questionHelper->ask(
                 $this->input,
                 $this->output,
                 new Question('Enter the field length <info>(default : 255)</info>: ', 255)
             );
-            $fieldDefinition['length'] = $fieldLength;
+            $fieldDefinition['field_attr']['length'] = $fieldLength;
         }
         if ($fieldType === 'int') {
             $fieldLength = $this->questionHelper->ask(
@@ -228,15 +241,15 @@ class MakegentoEntityCommand extends Command
                 $this->output,
                 new Question('Enter the field padding (length) <info>(default : 6)</info> : ', 6)
             );
-            $fieldDefinition['padding'] = $fieldLength;
+            $fieldDefinition['field_attr']['padding'] = $fieldLength;
         }
         /** @todo manage many to many relations */
-        $fieldDefinition['nullable'] = $this->yesNoQuestionPerformer->execute(
+        $fieldDefinition['field_attr']['nullable'] = $this->yesNoQuestionPerformer->execute(
             ['Is this field nullable? [y/n]'],
             $this->input,
             $this->output
         );
-        if ($fieldDefinition['nullable'] === false) {
+        if ($fieldDefinition['field_attr']['nullable'] === false) {
             $defaultValue = $this->yesNoQuestionPerformer->execute(
                 ['Do you want to set a default value for this field? [y/n]'],
                 $this->input,
@@ -248,11 +261,11 @@ class MakegentoEntityCommand extends Command
                         $this->input,
                         $this->output
                     )) {
-                    $fieldDefinition['default'] = 'CURRENT_TIMESTAMP';
+                    $fieldDefinition['field_attr']['default'] = 'CURRENT_TIMESTAMP';
                 } else {
                     $defaultValueQuestion = new Question('Enter the default value: ');
                     $defaultValue = $this->questionHelper->ask($this->input, $this->output, $defaultValueQuestion);
-                    $fieldDefinition['default'] = $defaultValue;
+                    $fieldDefinition['field_attr']['default'] = $defaultValue;
                 }
             }
         }
@@ -286,16 +299,17 @@ class MakegentoEntityCommand extends Command
             if ($field == '') {
                 $addNewIndexField = false;
             } else {
-                $indexFields[] = $field;
+                $indexFields[] = ['index_column_name' => $field];
             }
         }
         if (empty($indexFields)) {
-            throw new InvalidArrayException('Index fields cannot be empty');
+            throw new InvalidArrayException(__('Index fields cannot be empty'));
         }
         return [
             $indexName => [
-                'type' => $indexType,
-                'fields' => $indexFields
+                'index_name' => $indexName,
+                'index_type' => $indexType,
+                'index_column' => $indexFields
             ]
         ];
     }
@@ -319,11 +333,18 @@ class MakegentoEntityCommand extends Command
             'Choose the constraint type',
             ['unique', 'foreign']
         ));
-        $constraintDefinition = ['type' => $constraintType];
+        $constraintDefinition = [
+            'constraint_name' => $constraintName,
+            'constraint_type' => $constraintType
+        ];
         if ($constraintType === 'foreign') {
+            $constraintDefinition['constraint_foreign'] = true;
+            $constraintDefinition['constraint_not_foreign'] = false;
             $constraintDefinition['referenceTable'] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the reference table: '));
             $constraintDefinition['referenceField'] = $this->questionHelper->ask($this->input, $this->output, new Question('Enter the reference field: '));
         } else {
+            $constraintDefinition['constraint_foreign'] = false;
+            $constraintDefinition['constraint_not_foreign'] = true;
             $columns = [];
             $addColumn = true;
             while ($addColumn) {
@@ -337,9 +358,9 @@ class MakegentoEntityCommand extends Command
                 }
             }
             if (empty($columns)) {
-                throw new InvalidArrayException('Columns cannot be empty for unique constraint');
+                throw new InvalidArrayException(__('Columns cannot be empty for unique constraint'));
             }
-            $constraintDefinition['columns'] = $columns;
+            $constraintDefinition['columns'] = ['constraint_column_name' => $columns];
         }
         return [$constraintName => $constraintDefinition];
     }

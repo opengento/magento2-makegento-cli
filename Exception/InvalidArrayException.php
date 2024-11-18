@@ -2,7 +2,9 @@
 
 namespace Opengento\MakegentoCli\Exception;
 
-class InvalidArrayException extends \Exception
+use Magento\Framework\Exception\LocalizedException;
+
+class InvalidArrayException extends LocalizedException
 {
 
 }

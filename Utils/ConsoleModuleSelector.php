@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Opengento\MakegentoCli\Utils;
 
 use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\Component\ComponentRegistrar;
 use Magento\Framework\Filesystem;
 use Magento\Framework\Module\Dir\Reader;
 use Magento\Framework\Module\ModuleListInterface;
@@ -29,7 +30,8 @@ class ConsoleModuleSelector
         private readonly Filesystem          $filesystem,
         private readonly ModuleListInterface $moduleList,
         private readonly Reader              $moduleReader,
-        private readonly QuestionFactory     $questionFactory
+        private readonly QuestionFactory     $questionFactory,
+        private readonly ComponentRegistrar $componentRegistrar
     ) {
         $this->rootDir = $this->filesystem->getDirectoryRead(DirectoryList::ROOT);
     }
@@ -61,14 +63,14 @@ class ConsoleModuleSelector
             if (!$includeVendor && !str_contains($dir, 'app/code')) {
                 continue;
             }
-            $this->modulePaths[$module] = $dir;
+            $this->modulePaths[] = $module;
         }
 
-        return array_keys($this->modulePaths);
+        return $this->modulePaths;
     }
 
     public function getModulePath(string $moduleName): string
     {
-        return $this->modulePaths[$moduleName];
+        return $this->componentRegistrar->getPath(ComponentRegistrar::MODULE, $moduleName);
     }
 }
