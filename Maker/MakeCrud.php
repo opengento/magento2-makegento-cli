@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Maker;
 
-use Opengento\MakegentoCli\Api\ConsoleStyle;
-use Opengento\MakegentoCli\Api\DependencyBuilder;
-use Opengento\MakegentoCli\Api\InputConfiguration;
+use Magento\Framework\Exception\LocalizedException;
 use Opengento\MakegentoCli\Generator\GeneratorCrud;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -14,17 +12,29 @@ use Symfony\Component\Console\Output\OutputInterface;
 class MakeCrud extends AbstractMaker
 {
     public function __construct(
-        private readonly GeneratorCrud $generatorCrud,
-    ) {
+        private readonly GeneratorCrud $generatorCrud
+    )
+    {
     }
 
+    /**
+     * @throws LocalizedException
+     */
     public function generate(
         InputInterface $input,
         OutputInterface $output,
         string $selectedModule,
+        string $entityName = ''
     ): void {
+        if (empty($entityName)) {
+            throw new LocalizedException(__('Entity name is required'));
+        }
+        $this->generateCrud($input, $output, $selectedModule, $entityName);
     }
 
+    /**
+     * @throws LocalizedException
+     */
     public function generateCrud(
         InputInterface $input,
         OutputInterface $output,

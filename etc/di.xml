@@ -14,7 +14,8 @@
                 <item name="makegento:create-db" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCommand</item>
                 <item name="makegento:crud" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCrudCommand</item>
                 <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>
-                <item name="make:entity" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand</item>
+                <item name="makegento:entity" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand</item>
+                <item name="makegento:model" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoModelCommand</item>
                 <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>
             </argument>
         </arguments>
@@ -23,6 +24,18 @@
         <arguments>
             <argument name="state" xsi:type="object">Magento\Framework\App\State\Proxy</argument>
             <argument name="yesNoQuestionPerformer" xsi:type="object">Magento\Framework\Console\QuestionPerformer\YesNo\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand">
+        <arguments>
+            <argument name="makeEntity" xsi:type="object">Opengento\MakegentoCli\Maker\MakeEntity\Proxy</argument>
+            <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Opengento\MakegentoCli\Console\Command\MakegentoModelCommand">
+        <arguments>
+            <argument name="makeModel" xsi:type="object">Opengento\MakegentoCli\Maker\MakeModel\Proxy</argument>
+            <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
         </arguments>
     </type>
 </config>

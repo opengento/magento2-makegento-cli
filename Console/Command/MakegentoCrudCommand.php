@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Console\Command;
 
+use Magento\Framework\Exception\LocalizedException;
 use Opengento\MakegentoCli\Maker\MakeCrud;
 use Opengento\MakegentoCli\Utils\ConsoleCrudEntitySelector;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
@@ -12,7 +13,6 @@ use Magento\Framework\App\State;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\QuestionFactory;
 
 /**
  * Copyright © OpenGento, All rights reserved.
@@ -23,7 +23,6 @@ class MakegentoCrudCommand extends Command
     public function __construct(
         private readonly ConsoleModuleSelector $consoleModuleSelector,
         private readonly ConsoleCrudEntitySelector $consoleCrudEntitySelector,
-        private readonly QuestionFactory $questionFactory,
         private readonly State $appState,
         private readonly MakeCrud $makeCrud,
     ) {
@@ -50,13 +49,22 @@ class MakegentoCrudCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->appState->setAreaCode(Area::AREA_GLOBAL);
+        try {
+            $this->appState->setAreaCode(Area::AREA_GLOBAL);
+        } catch (LocalizedException $e) {
+            // Do nothing area code is already set
+        }
 
         $commandHelper = $this->getHelper('question');
         $selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
         $entityName = $this->consoleCrudEntitySelector->execute($input, $output, $commandHelper, $selectedModule);
 
-        $this->makeCrud->generateCrud($input, $output, $selectedModule, $entityName);
+        try {
+            $this->makeCrud->generate($input, $output, $selectedModule, $entityName);
+        } catch (LocalizedException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
 
         $output->writeln("<info>Vive Opengento</info>");
         return Command::SUCCESS;

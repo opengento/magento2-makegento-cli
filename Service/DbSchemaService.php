@@ -175,6 +175,23 @@ class DbSchemaService
         $xml->asXML($modulePath);
     }
 
+    public function getModuleTables(string $modulePath): array
+    {
+        $modulePath .= '/etc/db_schema.xml';
+        $xml = simplexml_load_file($modulePath);
+        $tables = [];
+        foreach ($xml->table as $table) {
+            $tableName = (string)$table['name'];
+            $tables[$tableName] = [];
+            foreach ($table->column as $column) {
+                $columnName = (string)$column['name'];
+                $type = (string)$column->attributes('xsi', true)['type'];
+                $tables[$tableName][$columnName] = $type;
+            }
+        }
+        return $tables;
+    }
+
     /**
      * @throws TableDefinitionException
      */

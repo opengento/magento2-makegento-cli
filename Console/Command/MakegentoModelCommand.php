@@ -10,7 +10,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class MakegentoModelCommand extends Command
 {
-    protected $selectedModule;
 
     public function __construct(
         private readonly ConsoleModuleSelector $consoleModuleSelector,
@@ -39,9 +38,16 @@ class MakegentoModelCommand extends Command
     {
         $commandHelper = $this->getHelper('question');
 
-        $this->selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
+        $selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
 
-        $this->makeModel->generate();
+        $modulePath = $this->consoleModuleSelector->getModulePath($selectedModule);
+
+        try {
+            $this->makeModel->generate($input, $output, $modulePath, $modulePath);
+        } catch (\Exception $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
 
         return Command::SUCCESS;
     }

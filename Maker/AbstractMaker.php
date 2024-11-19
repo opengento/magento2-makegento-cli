@@ -16,20 +16,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 abstract class AbstractMaker implements MakerInterface
 {
 
-    public function __construct(
-        private readonly ConsoleStyle    $consoleStyle,
-        protected readonly InputInterface $input,
-        protected readonly OutputInterface $output
-    ) {
-    }
-
-    /**
-     * @return void
-     */
-    public function interact(InputInterface $input, Command $command)
-    {
-    }
-
     /**
      * @return void
      */

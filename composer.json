@@ -27,7 +27,7 @@
     "license": [
         "MIT"
     ],
-    "homepage": "https://github.com/opengento/magento2-snowflake",
+    "homepage": "https://github.com/opengento/magento2-makegento-cli",
     "authors": [
         {
             "name": "Opengento Team",
@@ -39,6 +39,12 @@
             "name": "Xavier Guenel",
             "email": "xavier.guenel@gmail.com",
             "homepage": "https://www.linkedin.com/in/%F0%9F%8E%A9-xavier-guenel-255174198/",
+            "role": "maintainer"
+        },
+        {
+            "name": "Christophe Ferreboeuf",
+            "email": "christophe@crealoz.fr",
+            "homepage": "https://www.linkedin.com/in/cferreboeuf/",
             "role": "maintainer"
         }
     ],
@@ -55,6 +61,6 @@
         }
     },
     "archive": {
-        "exclude": ["/doc"]
+        "exclude": ["/docs"]
     }
 }
