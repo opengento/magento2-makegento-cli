@@ -18,6 +18,14 @@ class MakeEntity extends AbstractMaker
     private readonly OutputInterface $output;
     private readonly InputInterface $input;
 
+    private bool $dataTableInitialized = false;
+
+    private bool $tableFieldInitialized = false;
+
+    private array $dataTables = [];
+
+    private array $tableFields = [];
+
     public function __construct(
         private readonly DbSchemaService    $dbSchemaCreator,
         private readonly YesNo              $yesNoQuestionPerformer,
@@ -31,6 +39,7 @@ class MakeEntity extends AbstractMaker
      * @param InputInterface $input
      * @param OutputInterface $output
      * @param string $selectedModule
+     * @param string $modulePath
      * @return void
      */
     public function generate(InputInterface $input, OutputInterface $output, string $selectedModule, string $modulePath = ''): void
@@ -42,6 +51,10 @@ class MakeEntity extends AbstractMaker
             $output->writeln("<info>Database schema already exists</info>");
             $output->writeln("<info>Database schema modification</info>");
             $dataTables = $this->dbSchemaCreator->parseDbSchema($modulePath);
+            foreach ($dataTables as $tableName => $table) {
+                $this->dataTables[] = $tableName;
+                $this->addTableFields($tableName, array_keys($table['fields']), $table['primary']);
+            }
         } else {
             $output->writeln("<info>Database schema creation</info>");
             $dataTables = [];
@@ -154,6 +167,8 @@ class MakeEntity extends AbstractMaker
                 $addIndex = false;
             }
         }
+        $this->dataTables[] = $tableName;
+        $this->addTableFields($tableName, array_keys($tableFields), $primary);
         return [$tableName => [
             'fields' => $tableFields,
             'constraints' => $constraints,
@@ -238,21 +253,26 @@ class MakeEntity extends AbstractMaker
                 new Question('Enter the field padding (length) <info>(default : 6)</info> : ', 6)
             );
             $fieldDefinition['padding'] = $fieldLength;
+            $fieldDefinition['unsigned'] = $this->yesNoQuestionPerformer->execute(
+                ['Is this field unsigned? [y/n]'],
+                $this->input,
+                $this->output
+            ) ? "true" : "false";
         }
         /** @todo manage many to many relations */
         $fieldDefinition['nullable'] = $this->yesNoQuestionPerformer->execute(
             ['Is this field nullable? [y/n]'],
             $this->input,
             $this->output
-        );
-        if ($fieldDefinition['nullable'] === false) {
+        ) ? "true" : "false";
+        if ($fieldDefinition['nullable'] === 'false') {
             $defaultValue = $this->yesNoQuestionPerformer->execute(
                 ['Do you want to set a default value for this field? [y/n]'],
                 $this->input,
                 $this->output
             );
             if ($defaultValue) {
-                if ($fieldType === 'datetime'|'timestamp' && $this->yesNoQuestionPerformer->execute(
+                if ($fieldType === 'datetime' || $fieldType === 'timestamp' && $this->yesNoQuestionPerformer->execute(
                         ['Do you want to set the default value to the current time? [y/n]'],
                         $this->input,
                         $this->output
@@ -380,6 +400,9 @@ class MakeEntity extends AbstractMaker
             }
             $constraintDefinition['columns'] = $columns;
         }
+        if (empty($constraintDefinition['type'])) {
+            throw new InvalidArrayException('Constraint definition must have a type');
+        }
         return [$constraintName => $constraintDefinition];
     }
 
@@ -390,13 +413,14 @@ class MakeEntity extends AbstractMaker
      */
     private function getAllTables(): array
     {
-        $connection = $this->resourceConnection->getConnection();
-        $tables = $connection->getTables();
-        $tableNames = [];
-        foreach ($tables as $table) {
-            $tableNames[] = $table;
+        if (!$this->dataTableInitialized) {
+            $connection = $this->resourceConnection->getConnection();
+            $tables = $connection->getTables();
+            foreach ($tables as $table) {
+                $this->dataTables[] = $table;
+            }
         }
-        return $tableNames;
+        return $this->dataTables;
     }
 
     /**
@@ -407,17 +431,34 @@ class MakeEntity extends AbstractMaker
      */
     private function getTableFields(string $tableName): array
     {
-        $connection = $this->resourceConnection->getConnection();
-        $table = $connection->describeTable($tableName);
-        $fields = [];
-        $primaryKey = '';
-        foreach ($table as $name => $field) {
-            if ($field['PRIMARY'] === true) {
-                $primaryKey = $name;
+        if (!$this->tableFieldInitialized && !isset($this->tableFields[$tableName])) {
+            $connection = $this->resourceConnection->getConnection();
+            $table = $connection->describeTable($tableName);
+            $fields = [];
+            $primaryKey = '';
+            foreach ($table as $name => $field) {
+                if ($field['PRIMARY'] === true) {
+                    $primaryKey = $name;
+                }
+                $fields[] = $name;
             }
-            $fields[] = $name;
+            $this->addTableFields($tableName, $fields, $primaryKey);
         }
-        return ['fields' => $fields, 'identity' => $primaryKey];
+        return $this->tableFields[$tableName];
+    }
+
+    /**
+     * Adds a table to table fields array
+     * @param string $tableName
+     * @param array $fields
+     * @param string $primaryKey
+     */
+    private function addTableFields(string $tableName, array $fields, string $primaryKey): void
+    {
+        $this->tableFields[$tableName] = [
+            'fields' => $fields,
+            'identity' => $primaryKey
+        ];
     }
 
     /**

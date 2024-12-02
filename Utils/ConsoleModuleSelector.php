@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Utils;
 
-use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem;
 use Magento\Framework\Module\Dir\Reader;
 use Magento\Framework\Module\ModuleListInterface;

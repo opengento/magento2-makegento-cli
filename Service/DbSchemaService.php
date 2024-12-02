@@ -75,7 +75,10 @@ class DbSchemaService
             foreach ($table->constraint as $constraint) {
                 /** @var \SimpleXMLElement $constraint */
                 $constraintName = (string)$constraint['name'];
-                $constraintAttributes = [];
+                $type = (string)$constraint->attributes('xsi', true)['type'];
+                $constraintAttributes = [
+                    'type' => $type
+                ];
                 foreach ($constraint->attributes() as $attrName => $attrValue) {
                     if ($attrName === 'referenceId' && (string)$attrValue === 'PRIMARY') {
                         continue 2;
