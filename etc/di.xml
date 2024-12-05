@@ -14,9 +14,11 @@
                 <item name="makegento:create-db" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCommand</item>
                 <item name="makegento:crud" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCrudCommand</item>
                 <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>
-                <item name="makegento:entity" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand</item>
-                <item name="makegento:model" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoModelCommand</item>
+                <item name="makegento:model" xsi:type="object">Opengento\MakegentoCli\Console\Command\Model</item>
                 <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>
+                <item name="makegento:db-schema:entity" xsi:type="object">Opengento\MakegentoCli\Console\Command\Database\Entity</item>
+                <item name="makegento:db-schema:constraint" xsi:type="object">Opengento\MakegentoCli\Console\Command\Database\Constraint</item>
+                <item name="makegento:db-schema:field" xsi:type="object">Opengento\MakegentoCli\Console\Command\Database\Field</item>
             </argument>
         </arguments>
     </type>
@@ -26,13 +28,25 @@
             <argument name="yesNoQuestionPerformer" xsi:type="object">Magento\Framework\Console\QuestionPerformer\YesNo\Proxy</argument>
         </arguments>
     </type>
-    <type name="Opengento\MakegentoCli\Console\Command\MakegentoEntityCommand">
+    <type name="Opengento\MakegentoCli\Console\Command\Database\Entity">
         <arguments>
             <argument name="makeEntity" xsi:type="object">Opengento\MakegentoCli\Maker\MakeEntity\Proxy</argument>
             <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
         </arguments>
     </type>
-    <type name="Opengento\MakegentoCli\Console\Command\MakegentoModelCommand">
+    <type name="Opengento\MakegentoCli\Console\Command\Database\Field">
+        <arguments>
+            <argument name="makeEntity" xsi:type="object">Opengento\MakegentoCli\Maker\MakeField\Proxy</argument>
+            <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Opengento\MakegentoCli\Console\Command\Database\Constraint">
+        <arguments>
+            <argument name="makeEntity" xsi:type="object">Opengento\MakegentoCli\Maker\MakeConstraint\Proxy</argument>
+            <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Opengento\MakegentoCli\Console\Command\Model">
         <arguments>
             <argument name="makeModel" xsi:type="object">Opengento\MakegentoCli\Maker\MakeModel\Proxy</argument>
             <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>

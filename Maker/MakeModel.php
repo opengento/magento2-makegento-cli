@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Opengento\MakegentoCli\Maker;
 
 use Opengento\MakegentoCli\Generator\GeneratorModel;
-use Opengento\MakegentoCli\Service\DbSchemaService;
+use Opengento\MakegentoCli\Service\Database\DbSchemaParser;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -14,9 +14,9 @@ use Symfony\Component\Console\Question\Question;
 class MakeModel extends AbstractMaker
 {
     public function __construct(
-        protected readonly QuestionHelper   $questionHelper,
-        private readonly DbSchemaService $dbSchemaService,
-        private readonly GeneratorModel $generatorModel
+        protected readonly QuestionHelper $questionHelper,
+        private readonly DbSchemaParser  $dbSchemaParser,
+        private readonly GeneratorModel   $generatorModel
     )
     {
     }
@@ -35,7 +35,7 @@ class MakeModel extends AbstractMaker
 
         $output->writeln('Module: ' . $selectedModule);
 
-        $tables = $this->dbSchemaService->getModuleTables($selectedModule);
+        $tables = $this->dbSchemaParser->getModuleDataTables($selectedModule);
 
         $dbSelectionQuestion = new Question('Enter the name of the database table <info>Start typing for autocompletion</info>: ');
         $dbSelectionQuestion->setAutocompleterValues(array_keys($tables));
@@ -49,7 +49,7 @@ class MakeModel extends AbstractMaker
 
         $output->writeln('Start generating model for table ' . $tableName);
         $interface = $this->generatorModel->generateModelInterface($modulePath, $modelClassName, $properties);
-        $output->writeln('Interface '. $interface .' generated');
+        $output->writeln('Interface '. $interface . ' generated');
 
         $modelClass = $this->generatorModel->generateModel($modulePath, $modelClassName, $properties, $interface);
         $output->writeln('Model '. $modelClass .' generated');

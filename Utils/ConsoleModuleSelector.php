@@ -78,8 +78,16 @@ class ConsoleModuleSelector
         return array_keys($this->modulePaths);
     }
 
+    /**
+     * @param string $moduleName
+     * @return string
+     * @throws \InvalidArgumentException
+     */
     public function getModulePath(string $moduleName): string
     {
+        if (!isset($this->modulePaths[$moduleName])) {
+            throw new \InvalidArgumentException('The module ' . $moduleName . ' does not exist');
+        }
         return $this->modulePaths[$moduleName];
     }
 }

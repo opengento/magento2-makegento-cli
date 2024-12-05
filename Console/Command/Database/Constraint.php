@@ -1,24 +1,20 @@
 <?php
 
-namespace Opengento\MakegentoCli\Console\Command;
+namespace Opengento\MakegentoCli\Console\Command\Database;
 
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
-use Opengento\MakegentoCli\Maker\MakeEntity;
+use Opengento\MakegentoCli\Maker\MakeConstraint;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-/**
- * Copyright © OpenGento, All rights reserved.
- * See LICENSE bundled with this library for license details.
- */
-class MakegentoEntityCommand extends Command
+class Constraint extends Command
 {
 
     public function __construct(
         private readonly ConsoleModuleSelector $moduleSelector,
-        private readonly MakeEntity $makeEntity
+        private readonly MakeConstraint $makeConstraint
     )
     {
         parent::__construct();
@@ -27,16 +23,16 @@ class MakegentoEntityCommand extends Command
     public function configure(): void
     {
         $this
-            ->setName('makegento:entity')
+            ->setName('makegento:db-schema:constraint')
             ->setDescription('Create a new entity')
-            ->setHelp('This command allows you to create a new entity.');
+            ->setHelp('This command allows you to create a new foreign key.');
         parent::configure();
     }
 
     /**
      * @throws TableDefinitionException
      */
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $questionHelper = $this->getHelper('question');
 
@@ -49,9 +45,7 @@ class MakegentoEntityCommand extends Command
 
         $modulePath = $this->moduleSelector->getModulePath($selectedModule);
 
-        $this->makeEntity->generate($input, $output, $selectedModule, $modulePath);
+        $this->makeConstraint->generate($input, $output, $selectedModule, $modulePath);
         return Command::SUCCESS;
     }
-
-
 }
