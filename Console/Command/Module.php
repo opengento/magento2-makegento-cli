@@ -18,7 +18,7 @@ use Symfony\Component\Console\Question\QuestionFactory;
  * Copyright © OpenGento, All rights reserved.
  * See LICENSE bundled with this library for license details.
  */
-class MakegentoModuleCommand extends Command
+class Module extends Command
 {
     private $rootDir;
 

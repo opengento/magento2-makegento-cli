@@ -2,6 +2,9 @@
 
 namespace Opengento\MakegentoCli\Maker;
 
+use Magento\Framework\Exception\FileSystemException;
+use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
+use Opengento\MakegentoCli\Exception\ExistingFieldException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
 use Opengento\MakegentoCli\Service\Database\ConstraintDefinition;
 use Opengento\MakegentoCli\Service\Database\DataTableAutoCompletion;
@@ -27,15 +30,29 @@ class MakeField extends AbstractMaker
     }
 
     /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @param string $selectedModule
+     * @return void
+     * @throws ConstraintDefinitionException
+     * @throws FileSystemException
      * @throws TableDefinitionException
      */
     public function generate(InputInterface $input, OutputInterface $output, string $selectedModule): void
     {
         $tableName = $this->dataTableAutoCompletion->tableSelector($input, $output, $selectedModule);
         $dataTables = $this->dbSchemaParser->getModuleDataTables($selectedModule);
+        if (!isset($dataTables[$tableName])) {
+            throw new TableDefinitionException("Table $tableName does not exist in the module $selectedModule");
+        }
         $primary = $dataTables[$tableName]['primary'] ?? '';
 
-        $field = $this->field->create($output, $input, $primary, $tableName);
+        try {
+            $field = $this->field->create($output, $input, $primary, $tableName);
+        } catch (ExistingFieldException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            return;
+        }
         $existingFields = $dataTables[$tableName]['fields'];
         $dataTables[$tableName]['fields'] = array_merge($existingFields, $field);
 

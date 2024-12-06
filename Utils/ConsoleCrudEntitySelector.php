@@ -29,21 +29,14 @@ class ConsoleCrudEntitySelector
 {
     private const MODULE_ARGUMENT = 'module';
 
-    /** @var ReadInterface $rootDir */
-    private ReadInterface $rootDir;
-
     public function __construct(
-        private readonly Filesystem $filesystem,
         private readonly File $file,
-        private readonly Reader $moduleReader,
         private readonly QuestionFactory $questionFactory,
-        private readonly State $appState,
         private readonly ReadFactory $readFactory,
         private readonly DirectoryList $directoryList,
         private readonly YesNo $yesNoQuestionPerformer,
         private readonly StringTransformationTools $stringTransformationTools,
     ) {
-        $this->rootDir = $this->filesystem->getDirectoryRead(DirectoryList::ROOT);
     }
 
     public function execute(

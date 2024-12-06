@@ -4,6 +4,7 @@ namespace Opengento\MakegentoCli\Maker;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
+use Opengento\MakegentoCli\Exception\ExistingFieldException;
 use Opengento\MakegentoCli\Exception\InvalidArrayException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
 use Opengento\MakegentoCli\Service\Database\DataTableAutoCompletion;
@@ -121,14 +122,18 @@ class MakeEntity extends AbstractMaker
             $this->output,
             new Question('Enter the table comment <info>(default : Table comment)</info>: ', 'Table comment')
         );
+        $this->dataTableAutoCompletion->addDataTable($tableName);
         $tableFields = [];
         $addNewField = true;
         $primary = false;
         $indexes = [];
         $constraints = [];
         while ($addNewField) {
-            $field = $this->field->create($this->output, $this->input, $primary, $tableName);
-            dump($field);
+            try {
+                $field = $this->field->create($this->output, $this->input, $primary, $tableName);
+            } catch (ExistingFieldException $e) {
+                $this->output->writeln("<error>{$e->getMessage()}</error>");
+            }
             if (empty($field)) {
                 $addNewField = false;
             } else {
@@ -164,8 +169,6 @@ class MakeEntity extends AbstractMaker
                 $addIndex = false;
             }
         }
-        $this->dataTableAutoCompletion->addDataTable($tableName);
-        $this->dataTableAutoCompletion->addTableFields($tableName, array_keys($tableFields), $primary);
         return [$tableName => [
             'fields' => $tableFields,
             'constraints' => $constraints,

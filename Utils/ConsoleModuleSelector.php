@@ -62,6 +62,12 @@ class ConsoleModuleSelector
         return $moduleName;
     }
 
+    /**
+     * Get installed modules
+     *
+     * @param bool $includeVendor
+     * @return array
+     */
     private function getInstalledModules($includeVendor = false): array
     {
         $modules = $this->moduleList->getNames();

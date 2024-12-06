@@ -13,8 +13,6 @@ class DataTableAutoCompletion
 
     private bool $dataTableInitialized = false;
 
-    private bool $tableFieldInitialized = false;
-
     private array $dataTables = [];
 
     private array $tableFields = [];
@@ -78,7 +76,7 @@ class DataTableAutoCompletion
      */
     public function getTableFields(string $tableName): array
     {
-        if (!$this->tableFieldInitialized && !isset($this->tableFields[$tableName])) {
+        if (!isset($this->tableFields[$tableName])) {
             $connection = $this->resourceConnection->getConnection();
             $table = $connection->describeTable($tableName);
             $fields = [];
@@ -106,5 +104,19 @@ class DataTableAutoCompletion
             'fields' => $fields,
             'identity' => $primaryKey
         ];
+    }
+
+    public function addFieldToTable(string $tableName, string $fieldName, $isPrimary = false): void
+    {
+        if (!isset($this->tableFields[$tableName])) {
+            $this->tableFields[$tableName] = [
+                'fields' => [],
+                'identity' => ''
+            ];
+        }
+        $this->tableFields[$tableName]['fields'][] = $fieldName;
+        if ($isPrimary) {
+            $this->tableFields[$tableName]['identity'] = $fieldName;
+        }
     }
 }

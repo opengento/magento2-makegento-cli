@@ -18,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Copyright © OpenGento, All rights reserved.
  * See LICENSE bundled with this library for license details.
  */
-class MakegentoCrudCommand extends Command
+class Crud extends Command
 {
     public function __construct(
         private readonly ConsoleModuleSelector $consoleModuleSelector,

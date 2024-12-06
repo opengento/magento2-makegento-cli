@@ -10,22 +10,13 @@
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="makegento:module" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoModuleCommand</item>
-                <item name="makegento:create-db" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCommand</item>
-                <item name="makegento:crud" xsi:type="object">Opengento\MakegentoCli\Console\Command\MakegentoCrudCommand</item>
-                <item name="make:tools" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperToolsCommand</item>
+                <item name="makegento:module" xsi:type="object">Opengento\MakegentoCli\Console\Command\Module</item>
+                <item name="makegento:crud" xsi:type="object">Opengento\MakegentoCli\Console\Command\Crud</item>
                 <item name="makegento:model" xsi:type="object">Opengento\MakegentoCli\Console\Command\Model</item>
-                <item name="make:generate" xsi:type="object">Opengento\MakegentoCli\Console\Command\HelperCodeCommand</item>
                 <item name="makegento:db-schema:entity" xsi:type="object">Opengento\MakegentoCli\Console\Command\Database\Entity</item>
                 <item name="makegento:db-schema:constraint" xsi:type="object">Opengento\MakegentoCli\Console\Command\Database\Constraint</item>
                 <item name="makegento:db-schema:field" xsi:type="object">Opengento\MakegentoCli\Console\Command\Database\Field</item>
             </argument>
-        </arguments>
-    </type>
-    <type name="Opengento\MakegentoCli\Console\Command\MakegentoCommand">
-        <arguments>
-            <argument name="state" xsi:type="object">Magento\Framework\App\State\Proxy</argument>
-            <argument name="yesNoQuestionPerformer" xsi:type="object">Magento\Framework\Console\QuestionPerformer\YesNo\Proxy</argument>
         </arguments>
     </type>
     <type name="Opengento\MakegentoCli\Console\Command\Database\Entity">
