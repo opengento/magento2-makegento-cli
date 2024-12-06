@@ -2,6 +2,7 @@
 
 namespace Opengento\MakegentoCli\Console\Command\Database;
 
+use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
 use Opengento\MakegentoCli\Maker\MakeConstraint;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
@@ -31,6 +32,7 @@ class Constraint extends Command
 
     /**
      * @throws TableDefinitionException
+     * @throws ConstraintDefinitionException
      */
     public function execute(InputInterface $input, OutputInterface $output): int
     {
@@ -43,9 +45,7 @@ class Constraint extends Command
             return Command::FAILURE;
         }
 
-        $modulePath = $this->moduleSelector->getModulePath($selectedModule);
-
-        $this->makeConstraint->generate($input, $output, $selectedModule, $modulePath);
+        $this->makeConstraint->generate($input, $output, $selectedModule);
         return Command::SUCCESS;
     }
 }

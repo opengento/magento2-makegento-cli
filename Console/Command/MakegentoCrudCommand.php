@@ -66,7 +66,6 @@ class MakegentoCrudCommand extends Command
             return Command::FAILURE;
         }
 
-        $output->writeln("<info>Vive Opengento</info>");
         return Command::SUCCESS;
     }
 }

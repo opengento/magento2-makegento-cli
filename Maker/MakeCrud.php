@@ -61,6 +61,6 @@ class MakeCrud extends AbstractMaker
         $this->generatorCrud->generateListingLayout();
 
         // Generate fucking ui components
-        $output->writeln('<info>Creating fucking ui-component</info>');
+        $output->writeln('<info>Creating ui-component</info>');
     }
 }
