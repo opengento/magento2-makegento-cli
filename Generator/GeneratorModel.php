@@ -3,6 +3,7 @@
 namespace Opengento\MakegentoCli\Generator;
 
 use Magento\Framework\Filesystem\Io\File;
+use Opengento\MakegentoCli\Exception\ExistingClassException;
 use Opengento\MakegentoCli\Utils\StringTransformationTools;
 
 class GeneratorModel extends AbstractPhpClassGenerator
@@ -23,18 +24,18 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @param string $modelClassName
      * @param array $properties
      * @return string
-     * @throws \Exception
+     * @throws ExistingClassException
      */
-    public function generateModelInterface(string $modulePath, string $modelClassName, array $properties): string
+    public function generateModelInterface(string $modulePath, string $modelClassName, array $properties, string $namespace = ''): string
     {
         $newFilePath = $modulePath . '/Api/Data/';
         $newFilePathWithName = $newFilePath . $modelClassName . 'Interface.php';
 
-        if ($this->ioFile->fileExists($newFilePathWithName)) {
-            throw new \Exception('Interface already exists');
-        }
+        $namespace = $this->getNamespace($modulePath, '/Api/Data', $namespace);
 
-        $namespace = $this->getNamespace($modulePath, '/Api/Data');
+        if ($this->ioFile->fileExists($newFilePathWithName)) {
+            throw new ExistingClassException('Interface already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . 'Interface');
+        }
 
         $interfaceContent = $this->generatePhpInterface(
             $modelClassName . 'Interface',
@@ -60,24 +61,24 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @param array $properties
      * @param string $interface
      * @return string
-     * @throws \Exception
+     * @throws ExistingClassException
      */
-    public function generateModel(string $modulePath, string $modelClassName, array $properties, string $interface): string
+    public function generateModel(string $modulePath, string $modelClassName, array $properties, string $interface, string $namespace = ''): string
     {
 
         $newFilePath = $modulePath . '/Model/';
         $newFilePathWithName = $newFilePath . $modelClassName . '.php';
 
-        if ($this->ioFile->fileExists($newFilePathWithName)) {
-            throw new \Exception('Model already exists');
-        }
+        $namespace = $this->getNamespace($modulePath, '/Model', $namespace);
 
-        $namespace = $this->getNamespace($modulePath, '/Model');
+        if ($this->ioFile->fileExists($newFilePathWithName)) {
+            throw new ExistingClassException('Model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName);
+        }
 
         $classContent = $this->generatePhpClass(
             $modelClassName,
             $namespace,
-            $properties,
+            [],
             $this->initGetterSetter($properties),
             '\Magento\Framework\Model\AbstractModel',
             [$interface]
@@ -100,18 +101,18 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @param string $modelClassInterface
      * @param string $tableName
      * @return string
-     * @throws \Exception
+     * @throws ExistingClassException
      */
-    public function generateResourceModel(string $modulePath, string $modelClassName, string $modelClassInterface, string $tableName): string
+    public function generateResourceModel(string $modulePath, string $modelClassName, string $modelClassInterface, string $tableName, string $namespace = ''): string
     {
         $newFilePath = $modulePath . '/Model/ResourceModel/';
         $newFilePathWithName = $newFilePath . $modelClassName . '.php';
 
-        if ($this->ioFile->fileExists($newFilePathWithName)) {
-            throw new \Exception('Resource model already exists');
-        }
+        $namespace = $this->getNamespace($modulePath, '/Model/ResourceModel', $namespace);
 
-        $namespace = $this->getNamespace($modulePath, '/Model/ResourceModel');
+        if ($this->ioFile->fileExists($newFilePathWithName)) {
+            throw new ExistingClassException('Resource model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName);
+        }
 
         $resourceModelConstructor['_construct'] = [
             'body' => "\$this->_init('{$tableName}', {$modelClassInterface}::ID);",
@@ -140,20 +141,22 @@ class GeneratorModel extends AbstractPhpClassGenerator
      *
      * @param string $modulePath
      * @param string $modelClassName
+     * @param string $modelClass
      * @param string $resourceModelClass
+     * @param string $namespace
      * @return string
-     * @throws \Exception
+     * @throws ExistingClassException
      */
-    public function generateCollection(string $modulePath, string $modelClassName, string $modelClass, string $resourceModelClass): string
+    public function generateCollection(string $modulePath, string $modelClassName, string $modelClass, string $resourceModelClass, string $namespace = ''): string
     {
         $newFilePath = $modulePath . '/Model/ResourceModel/' . $modelClassName . '/';
         $newFilePathWithName = $newFilePath . 'Collection.php';
 
-        if ($this->ioFile->fileExists($newFilePathWithName)) {
-            throw new \Exception('Collection already exists');
-        }
+        $namespace = $this->getNamespace($modulePath, '/Model/ResourceModel/' . $modelClassName, $namespace);
 
-        $namespace = $this->getNamespace($modulePath, '/Model/ResourceModel/' . $modelClassName);
+        if ($this->ioFile->fileExists($newFilePathWithName)) {
+            throw new ExistingClassException('Collection already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . '\\Collection');
+        }
 
         $collectionConstructor['_construct'] = [
             'body' => "\$this->_init($modelClass::class, $resourceModelClass::class);",
@@ -186,15 +189,17 @@ class GeneratorModel extends AbstractPhpClassGenerator
     private function initGetterSetter($properties): array
     {
         $methods = [];
-        foreach ($properties as $property => $type) {
-            $methods["get" . ucfirst($property)] = [
+        foreach ($properties as $property => $definition) {
+            $type = $this->getPhpTypeFromEntityType($definition['type']);
+            $constName = $this->getConstName($property, $definition);
+            $methods["get" . $this->stringTransformationTools->getPascalCase($property)] = [
                 'arguments' => [],
-                'body' => "return \$this->$property;",
+                'body' => "return \$this->getData(self::$constName);",
                 'visibility' => 'public'
             ];
-            $methods["set" . ucfirst($property)] = [
+            $methods["set" . $this->stringTransformationTools->getPascalCase($property)] = [
                 'arguments' => ["$type \$$property"],
-                'body' => "\$this->$property = \$$property;",
+                'body' => "\$this->setData(self::$constName, \$$property);",
                 'visibility' => 'public'
             ];
         }
@@ -205,17 +210,14 @@ class GeneratorModel extends AbstractPhpClassGenerator
     /**
      * Loops through the properties and creates the constants for the interface
      *
-     * @param $properties
+     * @param array $properties
      * @return array
      */
-    private function initInterfaceConst($properties): array
+    private function initInterfaceConst(array $properties): array
     {
         $methods = [];
-        foreach ($properties as $property => $type) {
-            $constName = strtoupper($this->stringTransformationTools->getSnakeCase($property));
-            if (str_contains($property, 'ID')) {
-                $constName = "ID";
-            }
+        foreach ($properties as $property => $definition) {
+            $constName = $this->getConstName($property, $definition);
             $methods[$constName] = $property;
         }
 
@@ -223,22 +225,52 @@ class GeneratorModel extends AbstractPhpClassGenerator
     }
 
     /**
+     * Get the constant name for the property
+     *
+     * @param string $property
+     * @param array $definition
+     * @return string
+     */
+    private function getConstName(string $property, array $definition): string
+    {
+        if (!empty($definition['identity'])) {
+            return 'ID';
+        }
+        return strtoupper($this->stringTransformationTools->getSnakeCase($property));
+    }
+
+    /**
      * Strip the module path from everything before app/code/ or vendor/ to return the namespace
      *
      * @param string $modulePath
      * @param string $path
+     * @param string $namespace
      * @return string
-     * @throws \Exception
      */
-    private function getNamespace(string $modulePath, string $path): string
+    private function getNamespace(string $modulePath, string $path, string $namespace = ''): string
+    {
+        if (empty($namespace)) {
+            $namespace = $this->getNamespaceFromPath($modulePath);
+        }
+        return str_replace('/', '\\', $namespace . $path);
+    }
+
+    /**
+     * Get the namespace from the path
+     *
+     * @param string $modulePath
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public function getNamespaceFromPath(string $modulePath): string
     {
         if (str_contains($modulePath, 'app/code')) {
             $namespace = preg_replace('~.*app/code/~', '', $modulePath);
         } elseif (str_contains($modulePath, 'vendor')) {
             $namespace = preg_replace('~.*vendor/~', '', $modulePath);
         } else {
-            throw new \Exception('Module path is not in app/code or vendor');
+            throw new \InvalidArgumentException('Module path is not in app/code or vendor');
         }
-        return str_replace('/', '\\', $namespace . $path);
+        return $namespace;
     }
 }

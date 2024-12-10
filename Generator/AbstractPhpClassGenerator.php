@@ -48,7 +48,8 @@ class AbstractPhpClassGenerator
         array $methods = [],
         string $extends = null,
         array $implements = null
-    ) {
+    ): string
+    {
         $namespacePart = $namespace ? "namespace $namespace;\n\n" : "";
 
         $extendsImplementPart = "";
@@ -68,7 +69,8 @@ class AbstractPhpClassGenerator
             $propertiesPart .= "    protected \$_idFieldName = self::ID;\n\n";
         }
 
-        foreach ($properties as $property => $type) {
+        foreach ($properties as $property => $definition) {
+            $type = $definition['type'];
             $phpType = $this->getPhpTypeFromEntityType($type);
             $propertiesPart .= "    private $phpType \$$property;\n";
         }
@@ -77,7 +79,8 @@ class AbstractPhpClassGenerator
         foreach ($methods as $methodName => $method) {
             $methodBody = $method['body'];
             $methodVisibility = $method['visibility'];
-            $methodsPart .= "    $methodVisibility function $methodName() {\n";
+            $methodArguments = isset($method['arguments']) ? implode(',', $method['arguments']) : '';
+            $methodsPart .= "    $methodVisibility function $methodName($methodArguments) {\n";
             $methodsPart .= "        $methodBody\n";
             $methodsPart .= "    }\n\n";
         }
@@ -85,7 +88,8 @@ class AbstractPhpClassGenerator
         return "<?php\n\n" .
             $namespacePart .
             "\n" .
-            "class $className $extendsImplementPart{\n" .
+            "class $className $extendsImplementPart\n" .
+            "{\n" .
             $propertiesPart .
             "\n" .
             "\n" .
@@ -121,12 +125,14 @@ class AbstractPhpClassGenerator
         $methodsPart = "";
         foreach ($methods as $methodName => $method) {
             $methodVisibility = $method['visibility'];
-            $methodsPart .= "    $methodVisibility function $methodName();\n";
+            $methodArguments = isset($method['arguments']) ? implode(',', $method['arguments']) : '';
+            $methodsPart .= "    $methodVisibility function $methodName($methodArguments);\n";
         }
 
         return "<?php\n\n" .
             $namespacePart .
-            "interface $className $extendsPart {\n" .
+            "interface $className $extendsPart\n" .
+            "{\n" .
             $propertiesPart .
             "\n" .
             $methodsPart .

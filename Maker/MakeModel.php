@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Maker;
 
+use Opengento\MakegentoCli\Exception\ExistingClassException;
 use Opengento\MakegentoCli\Generator\GeneratorModel;
 use Opengento\MakegentoCli\Service\Database\DbSchemaParser;
 use Symfony\Component\Console\Helper\QuestionHelper;
@@ -27,7 +28,6 @@ class MakeModel extends AbstractMaker
      * @param string $selectedModule
      * @param string $modulePath
      * @return void
-     * @throws \Exception
      */
     public function generate(InputInterface $input, OutputInterface $output, string $selectedModule, string $modulePath = ''): void
     {
@@ -47,34 +47,86 @@ class MakeModel extends AbstractMaker
 
         $properties = $tables[$tableName];
 
+        $namespace = '';
+        try {
+            $this->generatorModel->getNamespaceFromPath($modulePath);
+        } catch (\InvalidArgumentException $e) {
+            $proposedNamespace = str_replace('_', '\\', $selectedModule).'\\';
+            $output->writeln('<info>Namespace not found, please set it manually</info>');
+            $namespaceQuestion = new Question('Enter the namespace <info>leave blank for ' . $proposedNamespace . ' : ', $proposedNamespace);
+            $inputNamespace = $this->questionHelper->ask($input, $output, $namespaceQuestion);
+            $namespace = $this->validateNamespaceInput($inputNamespace);
+            if ($inputNamespace !== $namespace) {
+                $output->writeln('<info>Namespace corrected to ' . $namespace . '</info>');
+            }
+        }
+
         $output->writeln('Start generating model for table ' . $tableName);
-        $interface = $this->generatorModel->generateModelInterface($modulePath, $modelClassName, $properties);
-        $output->writeln('Interface '. $interface . ' generated');
+        try {
+            $interface = $this->generatorModel->generateModelInterface($modulePath, $modelClassName, $properties['fields'], $namespace);
+            $output->writeln('Interface '. $interface . ' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            $interface = $e->getClassName();
+        }
 
-        $modelClass = $this->generatorModel->generateModel($modulePath, $modelClassName, $properties, $interface);
-        $output->writeln('Model '. $modelClass .' generated');
+        try {
+            $modelClass = $this->generatorModel->generateModel($modulePath, $modelClassName, $properties['fields'], $interface, $namespace);
+            $output->writeln('Model '. $modelClass .' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            $modelClass = $e->getClassName();
+        }
 
-        $resourceClass = $this->generatorModel->generateResourceModel($modulePath, $modelClassName, $interface, $tableName);
-        $output->writeln('Resource Model '. $resourceClass .' generated');
+        try {
+            $resourceClass = $this->generatorModel->generateResourceModel($modulePath, $modelClassName, $interface, $tableName, $namespace);
+            $output->writeln('Resource Model '. $resourceClass .' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            $resourceClass = $e->getClassName();
+        }
 
-        $collectionClass = $this->generatorModel->generateCollection($modulePath, $modelClassName, $modelClass, $resourceClass);
-        $output->writeln('Collection '. $collectionClass .' generated');
+        try {
+            $collectionClass = $this->generatorModel->generateCollection($modulePath, $modelClassName, $modelClass, $resourceClass, $namespace);
+            $output->writeln('Collection '. $collectionClass .' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+        }
 
 
     }
 
+    /**
+     * @param string $tableName
+     * @param string $moduleName
+     * @return string
+     */
     private function getDefaultClassName(string $tableName, string $moduleName): string
     {
         $moduleNameParts = explode('_', $moduleName);
 
         foreach ($moduleNameParts as $part) {
-            $tableName = str_replace($part, '', $tableName);
-            $tableName = str_replace(ucfirst($part), '', $tableName);
+            $tableName = str_replace(strtolower($part), '', $tableName);
+            $tableName = str_replace(strtolower($part), '', $tableName);
         }
 
         $className = str_replace('_', ' ', $tableName);
         $className = ucwords($className);
         $className = str_replace(' ', '', $className);
         return $className;
+    }
+
+    /**
+     * Removes spaces, replaces / by \, removes trailing \ and removes leading \
+     *
+     * @param string $namespace
+     * @return string
+     */
+    private function validateNamespaceInput(string $namespace): string
+    {
+        $namespace = str_replace('/', '\\', $namespace);
+        $namespace = str_replace(' ', '', $namespace);
+        $namespace = trim($namespace, '\\');
+        return $namespace;
     }
 }

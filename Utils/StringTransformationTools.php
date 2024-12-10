@@ -52,7 +52,7 @@ class StringTransformationTools
     }
 
     /**
-     * Return snake case formatted string
+     * Return pascal case formatted string
      *
      * @param string $string
      * @return string

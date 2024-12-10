@@ -43,10 +43,10 @@ class Model extends Command
         $modulePath = $this->consoleModuleSelector->getModulePath($selectedModule);
 
         try {
-            $this->makeModel->generate($input, $output, $modulePath, $modulePath);
+            $this->makeModel->generate($input, $output, $selectedModule, $modulePath);
         } catch (\Exception $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
-            return Command::FAILURE;
+            dd($e->getTraceAsString());
         }
 
         return Command::SUCCESS;
