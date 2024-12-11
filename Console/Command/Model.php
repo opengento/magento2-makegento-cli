@@ -46,7 +46,7 @@ class Model extends Command
             $this->makeModel->generate($input, $output, $selectedModule, $modulePath);
         } catch (\Exception $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
-            dd($e->getTraceAsString());
+            return Command::FAILURE;
         }
 
         return Command::SUCCESS;

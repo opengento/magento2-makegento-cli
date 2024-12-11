@@ -2,6 +2,7 @@
 
 namespace Opengento\MakegentoCli\Generator;
 
+use Magento\Framework\Filesystem\Io\File;
 use Opengento\MakegentoCli\Utils\StringTransformationTools;
 
 class AbstractPhpClassGenerator
@@ -25,6 +26,7 @@ class AbstractPhpClassGenerator
 
     public function __construct(
         protected readonly StringTransformationTools $stringTransformationTools,
+        protected readonly File $ioFile,
     )
     {
     }
@@ -78,9 +80,17 @@ class AbstractPhpClassGenerator
         $methodsPart = "";
         foreach ($methods as $methodName => $method) {
             $methodBody = $method['body'];
+            if (is_array($methodBody)) {
+                $methodBody = implode("\n", $methodBody);
+            }
             $methodVisibility = $method['visibility'];
-            $methodArguments = isset($method['arguments']) ? implode(',', $method['arguments']) : '';
-            $methodsPart .= "    $methodVisibility function $methodName($methodArguments) {\n";
+            $methodArguments = $method['arguments'] ?? [];
+            $separator = count($methodArguments) > 3 ? ",\n        " : ', ';
+            $methodArgumentsString = implode($separator, $methodArguments);
+            if (count($methodArguments) > 3) {
+                $methodArgumentsString = "\n        " . $methodArgumentsString . "\n    ";
+            }
+            $methodsPart .= "    $methodVisibility function $methodName($methodArgumentsString) {\n";
             $methodsPart .= "        $methodBody\n";
             $methodsPart .= "    }\n\n";
         }
@@ -124,8 +134,11 @@ class AbstractPhpClassGenerator
 
         $methodsPart = "";
         foreach ($methods as $methodName => $method) {
+            if ($methodName === '__construct') {
+                continue;
+            }
             $methodVisibility = $method['visibility'];
-            $methodArguments = isset($method['arguments']) ? implode(',', $method['arguments']) : '';
+            $methodArguments = isset($method['arguments']) ? implode(', ', $method['arguments']) : '';
             $methodsPart .= "    $methodVisibility function $methodName($methodArguments);\n";
         }
 
@@ -142,5 +155,40 @@ class AbstractPhpClassGenerator
     protected function getPhpTypeFromEntityType(string $entityType): string
     {
         return $this->typeMapping[$entityType];
+    }
+
+    /**
+     * Strip the module path from everything before app/code/ or vendor/ to return the namespace
+     *
+     * @param string $modulePath
+     * @param string $path
+     * @param string $namespace
+     * @return string
+     */
+    protected function getNamespace(string $modulePath, string $path, string $namespace = ''): string
+    {
+        if (empty($namespace)) {
+            $namespace = $this->getNamespaceFromPath($modulePath);
+        }
+        return str_replace('/', '\\', $namespace . $path);
+    }
+
+    /**
+     * Get the namespace from the path
+     *
+     * @param string $modulePath
+     * @return string
+     * @throws \InvalidArgumentException
+     */
+    public function getNamespaceFromPath(string $modulePath): string
+    {
+        if (str_contains($modulePath, 'app/code')) {
+            $namespace = preg_replace('~.*app/code/~', '', $modulePath);
+        } elseif (str_contains($modulePath, 'vendor')) {
+            $namespace = preg_replace('~.*vendor/~', '', $modulePath);
+        } else {
+            throw new \InvalidArgumentException('Module path is not in app/code or vendor');
+        }
+        return $namespace;
     }
 }

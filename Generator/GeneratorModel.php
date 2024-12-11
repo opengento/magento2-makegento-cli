@@ -2,20 +2,11 @@
 
 namespace Opengento\MakegentoCli\Generator;
 
-use Magento\Framework\Filesystem\Io\File;
 use Opengento\MakegentoCli\Exception\ExistingClassException;
-use Opengento\MakegentoCli\Utils\StringTransformationTools;
 
 class GeneratorModel extends AbstractPhpClassGenerator
 {
-
-    public function __construct(
-        StringTransformationTools $stringTransformationTools,
-        protected readonly File $ioFile,
-    )
-    {
-        parent::__construct($stringTransformationTools);
-    }
+    public const RESOURCE_MODEL_PATH = '/Model/ResourceModel/';
 
     /**
      * Generate a model interface
@@ -23,6 +14,7 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @param string $modulePath
      * @param string $modelClassName
      * @param array $properties
+     * @param string $namespace
      * @return string
      * @throws ExistingClassException
      */
@@ -60,16 +52,23 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @param string $modelClassName
      * @param array $properties
      * @param string $interface
+     * @param string $namespace
+     * @param string $subFolder
      * @return string
      * @throws ExistingClassException
      */
-    public function generateModel(string $modulePath, string $modelClassName, array $properties, string $interface, string $namespace = ''): string
+    public function generateModel(string $modulePath, string $modelClassName, array $properties, string $interface, string $namespace = '', $subFolder = ''): string
     {
 
-        $newFilePath = $modulePath . '/Model/';
+        if (empty($subFolder)) {
+            $subFolder = '/Model/';
+        } else {
+            $subFolder = '/Model/' . $subFolder . '/';
+        }
+        $newFilePath = $modulePath . $subFolder;
         $newFilePathWithName = $newFilePath . $modelClassName . '.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Model', $namespace);
+        $namespace = $this->getNamespace($modulePath, rtrim($subFolder, '/'), $namespace);
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName);
@@ -100,15 +99,22 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @param string $modelClassName
      * @param string $modelClassInterface
      * @param string $tableName
+     * @param string $namespace
+     * @param string $subFolder
      * @return string
      * @throws ExistingClassException
      */
-    public function generateResourceModel(string $modulePath, string $modelClassName, string $modelClassInterface, string $tableName, string $namespace = ''): string
+    public function generateResourceModel(string $modulePath, string $modelClassName, string $modelClassInterface, string $tableName, string $namespace = '', $subFolder = ''): string
     {
-        $newFilePath = $modulePath . '/Model/ResourceModel/';
+        if (empty($subFolder)) {
+            $subFolder = self::RESOURCE_MODEL_PATH;
+        } else {
+            $subFolder = self::RESOURCE_MODEL_PATH . $subFolder . '/';
+        }
+        $newFilePath = $modulePath . $subFolder;
         $newFilePathWithName = $newFilePath . $modelClassName . '.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Model/ResourceModel', $namespace);
+        $namespace = $this->getNamespace($modulePath, rtrim($subFolder, '/'), $namespace);
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Resource model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName);
@@ -147,12 +153,18 @@ class GeneratorModel extends AbstractPhpClassGenerator
      * @return string
      * @throws ExistingClassException
      */
-    public function generateCollection(string $modulePath, string $modelClassName, string $modelClass, string $resourceModelClass, string $namespace = ''): string
+    public function generateCollection(string $modulePath, string $modelClassName, string $modelClass, string $resourceModelClass, string $namespace = '', $subFolder = ''): string
     {
-        $newFilePath = $modulePath . '/Model/ResourceModel/' . $modelClassName . '/';
+
+        if (empty($subFolder)) {
+            $subFolder = self::RESOURCE_MODEL_PATH;
+        } else {
+            $subFolder = self::RESOURCE_MODEL_PATH . $subFolder . '/';
+        }
+        $newFilePath = $modulePath . $subFolder;
         $newFilePathWithName = $newFilePath . 'Collection.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Model/ResourceModel/' . $modelClassName, $namespace);
+        $namespace = $this->getNamespace($modulePath, rtrim($subFolder, '/') . $modelClassName, $namespace);
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Collection already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . '\\Collection');
@@ -237,40 +249,5 @@ class GeneratorModel extends AbstractPhpClassGenerator
             return 'ID';
         }
         return strtoupper($this->stringTransformationTools->getSnakeCase($property));
-    }
-
-    /**
-     * Strip the module path from everything before app/code/ or vendor/ to return the namespace
-     *
-     * @param string $modulePath
-     * @param string $path
-     * @param string $namespace
-     * @return string
-     */
-    private function getNamespace(string $modulePath, string $path, string $namespace = ''): string
-    {
-        if (empty($namespace)) {
-            $namespace = $this->getNamespaceFromPath($modulePath);
-        }
-        return str_replace('/', '\\', $namespace . $path);
-    }
-
-    /**
-     * Get the namespace from the path
-     *
-     * @param string $modulePath
-     * @return string
-     * @throws \InvalidArgumentException
-     */
-    public function getNamespaceFromPath(string $modulePath): string
-    {
-        if (str_contains($modulePath, 'app/code')) {
-            $namespace = preg_replace('~.*app/code/~', '', $modulePath);
-        } elseif (str_contains($modulePath, 'vendor')) {
-            $namespace = preg_replace('~.*vendor/~', '', $modulePath);
-        } else {
-            throw new \InvalidArgumentException('Module path is not in app/code or vendor');
-        }
-        return $namespace;
     }
 }

@@ -6,6 +6,7 @@ namespace Opengento\MakegentoCli\Maker;
 
 use Opengento\MakegentoCli\Exception\ExistingClassException;
 use Opengento\MakegentoCli\Generator\GeneratorModel;
+use Opengento\MakegentoCli\Generator\GeneratorRepository;
 use Opengento\MakegentoCli\Service\Database\DbSchemaParser;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,7 +18,8 @@ class MakeModel extends AbstractMaker
     public function __construct(
         protected readonly QuestionHelper $questionHelper,
         private readonly DbSchemaParser  $dbSchemaParser,
-        private readonly GeneratorModel   $generatorModel
+        private readonly GeneratorModel   $generatorModel,
+        private readonly GeneratorRepository $generatorRepository
     )
     {
     }
@@ -45,6 +47,8 @@ class MakeModel extends AbstractMaker
 
         $modelClassName = $this->questionHelper->ask($input, $output, new Question('Enter the class name <info>[default : '. $modelClassName .']</info>: ', $modelClassName));
 
+        $modelSubFolder = ucfirst($this->questionHelper->ask($input, $output, new Question('Enter the subfolder <info>[default : none]</info>: ', '')));
+
         $properties = $tables[$tableName];
 
         $namespace = '';
@@ -53,7 +57,7 @@ class MakeModel extends AbstractMaker
         } catch (\InvalidArgumentException $e) {
             $proposedNamespace = str_replace('_', '\\', $selectedModule).'\\';
             $output->writeln('<info>Namespace not found, please set it manually</info>');
-            $namespaceQuestion = new Question('Enter the namespace <info>leave blank for ' . $proposedNamespace . ' : ', $proposedNamespace);
+            $namespaceQuestion = new Question('Enter the namespace <info>[default : ' . $proposedNamespace . '] : ', $proposedNamespace);
             $inputNamespace = $this->questionHelper->ask($input, $output, $namespaceQuestion);
             $namespace = $this->validateNamespaceInput($inputNamespace);
             if ($inputNamespace !== $namespace) {
@@ -71,7 +75,7 @@ class MakeModel extends AbstractMaker
         }
 
         try {
-            $modelClass = $this->generatorModel->generateModel($modulePath, $modelClassName, $properties['fields'], $interface, $namespace);
+            $modelClass = $this->generatorModel->generateModel($modulePath, $modelClassName, $properties['fields'], $interface, $namespace, $modelSubFolder);
             $output->writeln('Model '. $modelClass .' generated');
         } catch (ExistingClassException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
@@ -79,7 +83,7 @@ class MakeModel extends AbstractMaker
         }
 
         try {
-            $resourceClass = $this->generatorModel->generateResourceModel($modulePath, $modelClassName, $interface, $tableName, $namespace);
+            $resourceClass = $this->generatorModel->generateResourceModel($modulePath, $modelClassName, $interface, $tableName, $namespace, $modelSubFolder);
             $output->writeln('Resource Model '. $resourceClass .' generated');
         } catch (ExistingClassException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
@@ -87,8 +91,32 @@ class MakeModel extends AbstractMaker
         }
 
         try {
-            $collectionClass = $this->generatorModel->generateCollection($modulePath, $modelClassName, $modelClass, $resourceClass, $namespace);
+            $collectionClass = $this->generatorModel->generateCollection($modulePath, $modelClassName, $modelClass, $resourceClass, $namespace, $modelSubFolder);
             $output->writeln('Collection '. $collectionClass .' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            $collectionClass = $e->getClassName();
+        }
+
+        try {
+            $searchResultInterface = $this->generatorRepository->generateSearchCriteriaInterface($modulePath, $modelClassName, $namespace);
+            $output->writeln('Repository '. $searchResultInterface .' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            $searchResultInterface = $e->getClassName();
+        }
+
+        try {
+            $repositoryInterface = $this->generatorRepository->generateRepositoryInterface($modulePath, $modelClassName, $searchResultInterface, $resourceClass, $collectionClass, $interface, $namespace);
+            $output->writeln('Repository '. $repositoryInterface .' generated');
+        } catch (ExistingClassException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+            $repositoryInterface = $e->getClassName();
+        }
+
+        try {
+            $repositoryClass = $this->generatorRepository->generateRepository($modulePath, $modelClassName, $searchResultInterface, $resourceClass, $collectionClass, $interface, $repositoryInterface, $namespace);
+            $output->writeln('Repository '. $repositoryClass .' generated');
         } catch (ExistingClassException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
         }
