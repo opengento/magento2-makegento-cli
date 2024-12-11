@@ -123,8 +123,10 @@ class MakeModel extends AbstractMaker
             $output->writeln("<error>{$e->getMessage()}</error>");
             $repositoryClass = $e->getClassName();
         }
-
+        $output->writeln('Generating preferences in di.xml file');
         $this->addPreferencesInDI($modulePath, $modelClass, $interface, $repositoryInterface, $repositoryClass);
+
+        $output->writeln('<success>Model generation completed</success>');
 
     }
 
@@ -172,18 +174,16 @@ class MakeModel extends AbstractMaker
     {
         $diXmlPath = $modulePath . '/etc/di.xml';
         $diXmlContent = $this->ioFile->read($diXmlPath);
-        // we look for "<preference for="interface" type="modelClassName"/>" in the di.xml file
+        // we look for "<preference for="(interface)" type="(modelClassName)"/>" in the di.xml file
         $pattern = '/<preference for="([^"]+)" type="([^"]+)"/';
         $hasPreferences = preg_match_all($pattern, $diXmlContent, $matches);
         $existingPreferences = [];
-        if ($hasPreferences) {
-            dump($matches);
-            foreach ($matches as $match) {
-                $interface = $match[1];
-                $type = $match[2];
-                $existingPreferences[$interface] = $type;
+        if ($hasPreferences && !empty($matches[1]) && !empty($matches[2])) {
+            foreach ($matches[1] as $index => $interface) {
+                $existingPreferences[$interface] = $matches[2][$index];
             }
         }
+        $newPreferences = [];
         if (!isset($existingPreferences[$modelInterface])) {
             $newPreferences[$modelInterface] = $modelClassName;
         }
