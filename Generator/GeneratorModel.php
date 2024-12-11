@@ -155,16 +155,15 @@ class GeneratorModel extends AbstractPhpClassGenerator
      */
     public function generateCollection(string $modulePath, string $modelClassName, string $modelClass, string $resourceModelClass, string $namespace = '', $subFolder = ''): string
     {
-
         if (empty($subFolder)) {
             $subFolder = self::RESOURCE_MODEL_PATH;
         } else {
             $subFolder = self::RESOURCE_MODEL_PATH . $subFolder . '/';
         }
-        $newFilePath = $modulePath . $subFolder;
+        $newFilePath = $modulePath . $subFolder . $modelClassName . '/';
         $newFilePathWithName = $newFilePath . 'Collection.php';
 
-        $namespace = $this->getNamespace($modulePath, rtrim($subFolder, '/') . $modelClassName, $namespace);
+        $namespace = $this->getNamespace($modulePath, rtrim($subFolder . $modelClassName, '/'), $namespace);
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Collection already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . '\\Collection');

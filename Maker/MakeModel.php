@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Maker;
 
+use Magento\Framework\Filesystem\Io\File;
 use Opengento\MakegentoCli\Exception\ExistingClassException;
 use Opengento\MakegentoCli\Generator\GeneratorModel;
 use Opengento\MakegentoCli\Generator\GeneratorRepository;
@@ -19,7 +20,8 @@ class MakeModel extends AbstractMaker
         protected readonly QuestionHelper $questionHelper,
         private readonly DbSchemaParser  $dbSchemaParser,
         private readonly GeneratorModel   $generatorModel,
-        private readonly GeneratorRepository $generatorRepository
+        private readonly GeneratorRepository $generatorRepository,
+        private readonly File $ioFile
     )
     {
     }
@@ -119,8 +121,10 @@ class MakeModel extends AbstractMaker
             $output->writeln('Repository '. $repositoryClass .' generated');
         } catch (ExistingClassException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
+            $repositoryClass = $e->getClassName();
         }
 
+        $this->addPreferencesInDI($modulePath, $modelClass, $interface, $repositoryInterface, $repositoryClass);
 
     }
 
@@ -156,5 +160,42 @@ class MakeModel extends AbstractMaker
         $namespace = str_replace(' ', '', $namespace);
         $namespace = trim($namespace, '\\');
         return $namespace;
+    }
+
+    private function addPreferencesInDI(
+        string $modulePath,
+        string $modelClassName,
+        string $modelInterface,
+        string $repositoryInterface,
+        string $repositoryClass,
+    ): void
+    {
+        $diXmlPath = $modulePath . '/etc/di.xml';
+        $diXmlContent = $this->ioFile->read($diXmlPath);
+        // we look for "<preference for="interface" type="modelClassName"/>" in the di.xml file
+        $pattern = '/<preference for="([^"]+)" type="([^"]+)"/';
+        $hasPreferences = preg_match_all($pattern, $diXmlContent, $matches);
+        $existingPreferences = [];
+        if ($hasPreferences) {
+            dump($matches);
+            foreach ($matches as $match) {
+                $interface = $match[1];
+                $type = $match[2];
+                $existingPreferences[$interface] = $type;
+            }
+        }
+        if (!isset($existingPreferences[$modelInterface])) {
+            $newPreferences[$modelInterface] = $modelClassName;
+        }
+        if (!isset($existingPreferences[$repositoryInterface])) {
+            $newPreferences[$repositoryInterface] = $repositoryClass;
+        }
+        $newPreferencesString = '';
+        foreach ($newPreferences as $interface => $type) {
+            $newPreferencesString .= "<preference for=\"$interface\" type=\"$type\"/>\n";
+        }
+        // we add the new preferences in the di.xml file
+        $diXmlContent = str_replace('</config>', $newPreferencesString . "\n</config>", $diXmlContent);
+        $this->ioFile->write($diXmlPath, $diXmlContent);
     }
 }
