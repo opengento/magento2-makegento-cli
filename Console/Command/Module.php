@@ -9,6 +9,7 @@ use Magento\Framework\Filesystem;
 use Opengento\MakegentoCli\Generator\GeneratorModule;
 use Magento\Framework\App\Area;
 use Magento\Framework\App\State;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -26,7 +27,7 @@ class Module extends Command
         private readonly QuestionFactory $questionFactory,
         private readonly State $appState,
         private readonly GeneratorModule $generatorModule,
-        private readonly Filesystem $filesystem,
+        private readonly Filesystem $filesystem
     ) {
         parent::__construct();
         $this->rootDir = $this->filesystem->getDirectoryRead(DirectoryList::ROOT);
@@ -68,7 +69,7 @@ class Module extends Command
 
         $moduleName = $commandHelper->ask($input, $output, $question);
 
-        $newModuleName = $this->generatorModule->generateModule($vendorName, $moduleName);
+        $this->generatorModule->generateModule($vendorName, $moduleName);
 
         $output->writeln(PHP_EOL);
         $output->writeln("\t" . '<bg=green;fg=white>                                                </>');

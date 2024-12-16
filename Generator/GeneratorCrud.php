@@ -6,9 +6,13 @@ namespace Opengento\MakegentoCli\Generator;
 
 use Magento\Framework\App\Area;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Filesystem;
 use Magento\Framework\Filesystem\Io\File;
 use Magento\Framework\Module\Dir;
 use Magento\Framework\Module\Dir\Reader;
+use Opengento\MakegentoCli\Exception\ExistingClassException;
+use Opengento\MakegentoCli\Service\CurrentModule;
+use Opengento\MakegentoCli\Utils\StringTransformationTools;
 
 /**
  * Copyright © OpenGento, All rights reserved.
@@ -21,35 +25,18 @@ class GeneratorCrud extends Generator
     private const ACL_XML = 'acl.xml';
     private const LISTING = 'listing';
 
-    /** @var null|string $currentModule */
-    private ?string $currentModule = null;
-
-    /** @var null|string $moduleNameSnakeCase */
-    private ?string $moduleNameSnakeCase = null;
-
     /** @var null|string $entityName */
     private ?string $entityName = null;
 
-    public function setCurrentModuleName(string $currentModule): self
+    public function __construct(
+        File $ioFile,
+        Filesystem $filesystem,
+        Reader $reader,
+        StringTransformationTools $stringTransformationTools,
+        CurrentModule $currentModule
+    )
     {
-        $this->currentModule = $currentModule;
-        $this->moduleNameSnakeCase = $this->stringTransformationTools->getSnakeCase(explode('_', $currentModule)[1]);
-        return $this;
-    }
-
-    public function getCurrentModuleName(): string
-    {
-        return $this->currentModule;
-    }
-
-    public function getModuleName(): string
-    {
-        return $this->getCurrentModuleName();
-    }
-
-    public function getModuleNameSnakeCase(): string
-    {
-        return $this->moduleNameSnakeCase;
+        parent::__construct($ioFile, $filesystem, $reader, $stringTransformationTools, $currentModule);
     }
 
     public function setEntityName(string $entityName): self
@@ -64,17 +51,23 @@ class GeneratorCrud extends Generator
     }
 
     /**
-     * @return void
+     * @return string
+     * @throws ExistingClassException
+     * @throws LocalizedException
      */
-    public function generateRoutes(): void
+    public function generateRoutes(): string
     {
-        $moduleNameSnakeCase = $this->getModuleNameSnakeCase();
+        $moduleNameSnakeCase = $this->currentModule->getModuleNameSnakeCase();
+
+        if ($this->ioFile->fileExists(Dir::MODULE_ETC_DIR . '/' . Area::AREA_ADMINHTML . '/' . self::ROUTES_XML)) {
+            throw new ExistingClassException("Routes already exists", Dir::MODULE_ETC_DIR . '/' . Area::AREA_ADMINHTML . '/' . self::ROUTES_XML);
+        }
 
         $templatePath = $this->reader->getModuleDir(null, self::OPENGENTO_MAKEGENTO_CLI)
             . '/Generator/templates/etc/adminhtml/routes.xml.tpl';
 
         $fieldsToUpdate = ['{{id}}', '{{frontName}}', '{{name}}'];
-        $fieldsReplacement = [$moduleNameSnakeCase, $moduleNameSnakeCase, $this->getModuleName()];
+        $fieldsReplacement = [$moduleNameSnakeCase, $moduleNameSnakeCase, $this->currentModule->getModuleName()];
 
         $this->generate(
             $templatePath,
@@ -83,47 +76,7 @@ class GeneratorCrud extends Generator
             Dir::MODULE_ETC_DIR . '/' . Area::AREA_ADMINHTML,
             self::ROUTES_XML,
         );
-    }
-
-    /**
-     * Generate Listing Controller
-     *
-     * @return void
-     * @throws LocalizedException
-     */
-    public function generateListingController(): void
-    {
-        $controllerPath = mb_ucfirst(
-            mb_strtolower($this->stringTransformationTools->getCamelCase($this->getEntityName()), 'UTF-8'),
-            'UTF-8'
-        );
-
-        $templatePath = $this->reader->getModuleDir(null, self::OPENGENTO_MAKEGENTO_CLI)
-            . '/Generator/templates/Controller/controller.php.tpl';
-
-        $fieldsToUpdate = [
-            '{{vendor\module}}',
-            '{{controllerPath}}',
-            '{{controllerName}}',
-            '{{moduleName}}',
-            '{{module_title}}'
-        ];
-        $fieldsReplacement = [
-            str_replace('_', '\\', $this->getModuleName()),
-            $controllerPath,
-            mb_ucfirst(self::LISTING, 'UTF-8'),
-            $this->getModuleName(),
-            mb_ucfirst(mb_strtolower($this->getModuleName(), 'UTF-8'), 'UTF-8'),
-            str_replace('_', ' ', $this->getModuleName()),
-        ];
-
-        $this->generate(
-            $templatePath,
-            $fieldsToUpdate,
-            $fieldsReplacement,
-            Dir::MODULE_CONTROLLER_DIR . '/' . mb_ucfirst(Area::AREA_ADMINHTML . '/' . $controllerPath, 'UTF-8'),
-            mb_ucfirst(self::LISTING, 'UTF-8') . '.php',
-        );
+        return $moduleNameSnakeCase;
     }
 
     /**
@@ -134,7 +87,7 @@ class GeneratorCrud extends Generator
      */
     public function generateMenuEntry(): void
     {
-        $moduleNameSnakeCase = $this->getModuleNameSnakeCase();
+        $moduleNameSnakeCase = $this->currentModule->getModuleNameSnakeCase();
 
         $templatePath = $this->reader->getModuleDir(null, self::OPENGENTO_MAKEGENTO_CLI)
             . '/Generator/templates/etc/adminhtml/menu.xml.tpl';
@@ -142,21 +95,17 @@ class GeneratorCrud extends Generator
         $fieldsToUpdate = [
             '{{module_name}}',
             '{{menuEntryTitle}}',
-            '{{module_name}}',
             '{{order}}',
             '{{frontName}}',
             '{{controllerName}}',
-            '{{module_name}}'
         ];
         $fieldsReplacement = [
-            $this->getModuleName(),
-            str_replace('_', ' ', $this->getModuleName()),
-            $this->getModuleName(),
+            $this->currentModule->getModuleName(),
+            str_replace('_', ' ', $this->currentModule->getModuleName()),
             '42',
             $moduleNameSnakeCase,
-                mb_strtolower($this->stringTransformationTools->getCamelCase($this->getEntityName()), 'UTF-8')
-                . '/' . self::LISTING,
-            $this->getModuleName(),
+            mb_strtolower($this->stringTransformationTools->getCamelCase($this->getEntityName()), 'UTF-8')
+            . '/' . self::LISTING,
         ];
 
         $this->generate(
@@ -171,19 +120,20 @@ class GeneratorCrud extends Generator
     /**
      * Generate Listing Layout file
      *
-     * @return void
+     * @return string
      * @throws LocalizedException
      */
-    public function generateListingLayout(): void
+    public function generateListingLayout(): string
     {
         $templatePath = $this->reader->getModuleDir(null, self::OPENGENTO_MAKEGENTO_CLI)
             . '/Generator/templates/view/adminhtml/layout/listing.xml.tpl';
 
-        $layoutName = $this->stringTransformationTools->getSnakeCase(explode('_', $this->getModuleName())[1])
+        $layoutName = $this->currentModule->getModuleNameSnakeCase()
             . '_'
             . strtolower($this->getEntityName()) . '_' . self::LISTING;
 
-        $layoutUiComponentName = $layoutName;
+        $layoutUiComponentName = strtolower($this->currentModule->getModuleNameWithoutVendor())
+            . '_' . strtolower($this->getEntityName()) . '_' . self::LISTING;
 
         $layoutFileName = $layoutName . self::XML_EXTENSION;
 
@@ -201,6 +151,7 @@ class GeneratorCrud extends Generator
             Dir::MODULE_VIEW_DIR . '/' . Area::AREA_ADMINHTML . '/layout',
             $layoutFileName,
         );
+        return $layoutUiComponentName;
     }
 
     /**
@@ -216,11 +167,13 @@ class GeneratorCrud extends Generator
 
         $fieldsToUpdate = [
             '{{module_name}}',
-            '{{aclTitle}}',
+            '{{aclTitleView}}',
+            '{{aclTitleManage}}',
         ];
         $fieldsReplacement = [
-            $this->getModuleName(),
-            str_replace('_', ' ', $this->getModuleName()) . ' ' . self::LISTING,
+            $this->currentModule->getModuleName(),
+            str_replace('_', ' ', $this->currentModule->getModuleName()) . ' View',
+            str_replace('_', ' ', $this->currentModule->getModuleName()) . ' Manage',
         ];
 
         $this->generate(

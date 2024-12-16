@@ -8,6 +8,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem;
 use Magento\Framework\Filesystem\Io\File;
 use Magento\Framework\Module\Dir\Reader;
+use Opengento\MakegentoCli\Service\CurrentModule;
 use Opengento\MakegentoCli\Utils\StringTransformationTools;
 
 /**
@@ -19,7 +20,7 @@ abstract class Generator
     protected const TEMPLATE_EXTENSION = '.tpl';
     protected const XML_EXTENSION = '.xml';
 
-    protected const OPENGENTO_MAKEGENTO_CLI = 'Opengento_MakegentoCli';
+    public const OPENGENTO_MAKEGENTO_CLI = 'Opengento_MakegentoCli';
 
     /**
      * Constructor
@@ -32,6 +33,7 @@ abstract class Generator
         protected readonly Filesystem $filesystem,
         protected readonly Reader $reader,
         protected readonly StringTransformationTools $stringTransformationTools,
+        protected readonly CurrentModule $currentModule
     ) {
     }
 
@@ -53,7 +55,7 @@ abstract class Generator
         string $newFilePathFromModuleDirectory,
         string $fileName,
         bool $isNewModule = false,
-    ): void {
+    ): string {
         // Get template and replace content with actuel data
         try {
             $template = $this->ioFile->read($templatePath);
@@ -69,7 +71,7 @@ abstract class Generator
 
         $newFilePath = $newFilePathFromModuleDirectory;
         if (!$isNewModule) {
-            $newFilePath = $this->reader->getModuleDir(null, $this->getCurrentModuleName())
+            $newFilePath = $this->reader->getModuleDir(null, $this->currentModule->getModuleName())
                 . '/' . $newFilePathFromModuleDirectory;
         }
 
@@ -84,5 +86,6 @@ abstract class Generator
         } catch (\Exception $e) {
             throw new LocalizedException(__("Error while attempting to create file: %1", $e->getMessage()));
         }
+        return $newFilePathWithName;
     }
 }

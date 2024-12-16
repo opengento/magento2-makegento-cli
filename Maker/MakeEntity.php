@@ -2,11 +2,14 @@
 
 namespace Opengento\MakegentoCli\Maker;
 
-use Magento\Framework\Console\QuestionPerformer\YesNo;
+use Magento\Framework\Exception\FileSystemException;
+use Opengento\MakegentoCli\Api\MakerInterface;
 use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
 use Opengento\MakegentoCli\Exception\ExistingFieldException;
 use Opengento\MakegentoCli\Exception\InvalidArrayException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
+use Opengento\MakegentoCli\Service\CurrentModule;
 use Opengento\MakegentoCli\Service\Database\DataTableAutoCompletion;
 use Opengento\MakegentoCli\Service\Database\DbSchemaCreator;
 use Opengento\MakegentoCli\Service\Database\DbSchemaParser;
@@ -18,7 +21,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 
-class MakeEntity extends AbstractMaker
+class MakeEntity implements MakerInterface
 {
     private readonly OutputInterface $output;
     private readonly InputInterface $input;
@@ -29,31 +32,32 @@ class MakeEntity extends AbstractMaker
         private readonly Field                  $field,
         protected readonly QuestionHelper       $questionHelper,
         protected DataTableAutoCompletion       $dataTableAutoCompletion,
-        protected readonly ConstraintDefinition $constraintDefinition
+        protected readonly ConstraintDefinition $constraintDefinition,
+        private readonly CommandIoProvider      $commandIoProvider,
+        private readonly CurrentModule           $currentModule
     )
     {
     }
 
     /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     * @param string $selectedModule
      * @return void
+     * @throws FileSystemException|\Opengento\MakegentoCli\Exception\CommandIoNotInitializedException
      */
-    public function generate(InputInterface $input, OutputInterface $output, string $selectedModule): void
+    public function generate(): void
     {
-        $this->output = $output;
-        $this->input = $input;
+        $this->output = $this->commandIoProvider->getOutput();
+        $this->input = $this->commandIoProvider->getInput();
+        $selectedModule = $this->currentModule->getModuleName();
         try {
             $dataTables = $this->dbSchemaParser->getModuleDataTables($selectedModule);
-            $output->writeln("<info>Database schema already exists</info>");
-            $output->writeln("<info>Database schema modification</info>");
+            $this->output->writeln("<info>Database schema already exists</info>");
+            $this->output->writeln("<info>Database schema modification</info>");
             foreach ($dataTables as $tableName => $table) {
                 $this->dataTableAutoCompletion->addDataTable($tableName);
                 $this->dataTableAutoCompletion->addTableFields($tableName, array_keys($table['fields']), $table['primary']);
             }
         } catch (TableDefinitionException $e) {
-            $output->writeln("<info>Database schema creation</info>");
+            $this->output->writeln("<info>Database schema creation</info>");
             $dataTables = [];
         }
         $addNewTable = true;
@@ -66,14 +70,14 @@ class MakeEntity extends AbstractMaker
                     $dataTables = array_merge($dataTables, $tableDefinition);
                 }
             } catch (InvalidArrayException $e) {
-                $output->writeln("<error>You did not create any field in last table, going to generation.</error>");
+                $this->output->writeln("<error>You did not create any field in last table, going to generation.</error>");
                 $addNewTable = false;
             }
         }
         if (!empty($dataTables)) {
             try {
                 $this->dbSchemaCreator->createDbSchema($selectedModule, $dataTables);
-                $output->writeln("<info>Database schema created</info>");
+                $this->output->writeln("<info>Database schema created</info>");
             } catch (TableDefinitionException $e) {
                 $this->output->writeln("<error>{$e->getMessage()}</error>");
             }

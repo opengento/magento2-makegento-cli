@@ -3,9 +3,7 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\App\ResourceConnection;
-use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Symfony\Component\Console\Question\Question;
 
 class DataTableAutoCompletion
@@ -18,9 +16,9 @@ class DataTableAutoCompletion
     private array $tableFields = [];
 
     public function __construct(
-        private readonly QuestionHelper $questionHelper,
         private readonly ResourceConnection $resourceConnection,
-        private readonly DbSchemaParser $dbSchemaParser
+        private readonly DbSchemaParser $dbSchemaParser,
+        private readonly CommandIoProvider $commandIoProvider
     )
     {
     }
@@ -54,18 +52,20 @@ class DataTableAutoCompletion
     /**
      * Permits to select a table from the data tables of a module.
      *
-     * @param InputInterface $input
-     * @param OutputInterface $output
      * @param string $selectedModule
      * @return mixed
      */
-    public function tableSelector(InputInterface $input, OutputInterface $output, string $selectedModule): mixed
+    public function tableSelector(string $selectedModule): mixed
     {
         $dataTables = $this->dbSchemaParser->getModuleDataTables($selectedModule);
 
         $tableSelection = new Question('Choose the table: ' . PHP_EOL);
         $tableSelection->setAutocompleterValues(array_keys($dataTables));
-        return $this->questionHelper->ask($input, $output, $tableSelection);
+        $this->commandIoProvider->getOutput()->writeln('<info>Table in db_schema.xml</info>');
+        foreach (array_keys($dataTables) as $entity) {
+            $this->commandIoProvider->getOutput()->writeln($entity);
+        }
+        return $this->commandIoProvider->getQuestionHelper()->ask($this->commandIoProvider->getInput(), $this->commandIoProvider->getOutput(), $tableSelection);
     }
 
     /**

@@ -3,8 +3,9 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
+use Opengento\MakegentoCli\Exception\CommandIoNotInitializedException;
 use Opengento\MakegentoCli\Exception\ExistingFieldException;
-use Symfony\Component\Console\Helper\QuestionHelper;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
@@ -59,11 +60,14 @@ class Field
             'length' => 255
         ],
     ];
+    private \Symfony\Component\Console\Helper\QuestionHelper $questionHelper;
+    private OutputInterface $output;
+    private InputInterface $input;
 
     public function __construct(
         private readonly YesNo            $yesNoQuestionPerformer,
-        protected readonly QuestionHelper $questionHelper,
-        private readonly DataTableAutoCompletion $dataTableAutoCompletion
+        private readonly DataTableAutoCompletion $dataTableAutoCompletion,
+        private readonly CommandIoProvider $commandIoProvider,
     )
     {
     }
@@ -71,21 +75,24 @@ class Field
     /**
      * This part will ask questions to user to be able to know what type of field he wants to create
      *
-     * @param OutputInterface $output
-     * @param InputInterface $input
      * @param $primary
      * @param string $tableName
      * @return array
      * @throws ExistingFieldException
+     * @throws CommandIoNotInitializedException
      */
-    public function create(OutputInterface $output, InputInterface $input, &$primary, string $tableName = ''): array
+    public function create(&$primary, string $tableName = ''): array
     {
+
+        $this->output = $this->commandIoProvider->getOutput();
+        $this->input = $this->commandIoProvider->getInput();
+        $this->questionHelper = $this->commandIoProvider->getQuestionHelper();
         if (!$primary) {
-            return $this->createPrimary($output, $input, $primary, $tableName);
+            return $this->createPrimary($primary, $tableName);
         }
         $fieldName = $this->questionHelper->ask(
-            $input,
-            $output,
+            $this->input,
+            $this->output,
             new Question('Enter the field name <info>(leave empty to advance to constraints)</info>: ' . PHP_EOL)
         );
         if ($fieldName == '') {
@@ -100,7 +107,7 @@ class Field
             'varchar'
         );
         $fieldTypeQuestion->setAutocompleterValues(array_keys($this->fieldTypes));
-        $fieldType = $this->questionHelper->ask($input, $output, $fieldTypeQuestion);
+        $fieldType = $this->questionHelper->ask($this->input, $this->output, $fieldTypeQuestion);
         $fieldDefinition['type'] = $fieldType;
         /**
          * Ask question for all the attributes of the field type. We exclude the unsigned attribute because it's managed
@@ -110,26 +117,26 @@ class Field
             if ($attribute === 'unsigned') {
                 continue;
             }
-            $fieldDefinition[$attribute] = $this->getFieldSpecificDefinition($attribute, $fieldType, $input, $output);
+            $fieldDefinition[$attribute] = $this->getFieldSpecificDefinition($attribute, $fieldType, $this->input, $this->output);
         }
         if (isset($this->fieldTypes[$fieldType]['unsigned'])) {
             $fieldDefinition['unsigned'] = $this->yesNoQuestionPerformer->execute(
                 ['Is this field unsigned? [y/n]'],
-                $input,
-                $output
+                $this->input,
+                $this->output
             ) ? "true" : "false";
         }
         /** @todo manage many to many relations */
         $fieldDefinition['nullable'] = $this->yesNoQuestionPerformer->execute(
             ['Is this field nullable? [y/n]'],
-            $input,
-            $output
+            $this->input,
+            $this->output
         ) ? "true" : "false";
         if ($fieldDefinition['nullable'] === 'false') {
             $defaultValue = $this->yesNoQuestionPerformer->execute(
                 ['Do you want to set a default value for this field? [y/n]'],
-                $input,
-                $output
+                $this->input,
+                $this->output
             );
             if ($defaultValue) {
                 $hasDefault = null;
@@ -139,7 +146,7 @@ class Field
                 $questionString = 'Enter the default value ';
                 $questionString .= $hasDefault ? '<info>(default : ' . $hasDefault . ')</info>: ' : ': ';
                 $defaultValueQuestion = new Question($questionString, $hasDefault);
-                $defaultValue = $this->questionHelper->ask($input, $output, $defaultValueQuestion);
+                $defaultValue = $this->questionHelper->ask($this->input, $this->output, $defaultValueQuestion);
                 $fieldDefinition['default'] = $defaultValue;
             }
         }
@@ -149,29 +156,38 @@ class Field
     }
 
     /**
-     * This part will ask questions to user to be able to know what type of field he wants to create
+     * This part will ask questions to user to be able to know what type of field needs to be created
      *
      * @param string $attribute
      * @param string $fieldType
-     * @param InputInterface $input
-     * @param OutputInterface $output
      * @return string
      */
-    private function getFieldSpecificDefinition(string $attribute, string $fieldType, InputInterface $input, OutputInterface $output): string
+    private function getFieldSpecificDefinition(string $attribute, string $fieldType): string
     {
         $defaultAnswer = $this->fieldTypes[$fieldType][$attribute];
         return $this->questionHelper->ask(
-            $input,
-            $output,
+            $this->input,
+            $this->output,
             new Question('Enter the field ' . $attribute .' <info>(default : '.$defaultAnswer.')</info>: ', $defaultAnswer)
         );
     }
 
-    public function createPrimary(OutputInterface $output, InputInterface $input, &$primary, string $tableName = '')
+    /**
+     * This part will ask questions to user to create the primary key
+     *
+     * @param $primary
+     * @param string $tableName
+     * @return array
+     * @throws CommandIoNotInitializedException
+     */
+    public function createPrimary(&$primary, string $tableName = '')
     {
+        $this->output = $this->commandIoProvider->getOutput();
+        $this->input = $this->commandIoProvider->getInput();
+        $this->questionHelper = $this->commandIoProvider->getQuestionHelper();
         $fieldName = $this->questionHelper->ask(
-            $input,
-            $output,
+            $this->input,
+            $this->output,
             new Question(
                 'Please define a primary key <info>default : ' . $tableName . '_id</info>: ' . PHP_EOL,
                 $tableName . '_id'
@@ -180,14 +196,14 @@ class Field
         $primary = $fieldName;
         $defaultPrimary = $this->yesNoQuestionPerformer->execute(
             ['Do you accept this definition <info>int(5)</info>?'],
-            $input,
-            $output
+            $this->input,
+            $this->output
         );
         $padding = 5;
         if (!$defaultPrimary) {
             $padding = $this->questionHelper->ask(
-                $input,
-                $output,
+                $this->input,
+                $this->output,
                 new Question('Enter the field padding (length): ', 6)
             );
         }

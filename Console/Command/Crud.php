@@ -6,6 +6,7 @@ namespace Opengento\MakegentoCli\Console\Command;
 
 use Magento\Framework\Exception\LocalizedException;
 use Opengento\MakegentoCli\Maker\MakeCrud;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Opengento\MakegentoCli\Utils\ConsoleCrudEntitySelector;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Magento\Framework\App\Area;
@@ -25,6 +26,7 @@ class Crud extends Command
         private readonly ConsoleCrudEntitySelector $consoleCrudEntitySelector,
         private readonly State $appState,
         private readonly MakeCrud $makeCrud,
+        private readonly CommandIoProvider $commandIoProvider,
     ) {
         parent::__construct();
     }
@@ -56,11 +58,12 @@ class Crud extends Command
         }
 
         $commandHelper = $this->getHelper('question');
-        $selectedModule = $this->consoleModuleSelector->execute($input, $output, $commandHelper, true);
-        $entityName = $this->consoleCrudEntitySelector->execute($input, $output, $commandHelper, $selectedModule);
 
+        $this->commandIoProvider->init($input, $output, $commandHelper);
+        $this->consoleModuleSelector->execute(true);
+        $entityName = $this->consoleCrudEntitySelector->execute();
         try {
-            $this->makeCrud->generate($input, $output, $selectedModule, $entityName);
+            $this->makeCrud->generate($entityName);
         } catch (LocalizedException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
             return Command::FAILURE;

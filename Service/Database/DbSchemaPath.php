@@ -3,15 +3,15 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\Exception\FileSystemException;
-use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
+use Opengento\MakegentoCli\Service\CurrentModule;
 
 class DbSchemaPath
 {
 
 
     public function __construct(
-        private readonly ConsoleModuleSelector $moduleSelector,
-        private readonly \Magento\Framework\Filesystem $filesystem
+        private readonly \Magento\Framework\Filesystem $filesystem,
+        private readonly CurrentModule           $currentModule
     )
     {
     }
@@ -25,7 +25,7 @@ class DbSchemaPath
      */
     public function get(string $selectedModule): string
     {
-        $modulePath = $this->moduleSelector->getModulePath($selectedModule);
+        $modulePath = $this->currentModule->getModulePath();
         if (!$this->filesystem->getDirectoryReadByPath($modulePath)->isExist('etc/db_schema.xml')) {
             throw new FileSystemException(__('No db_schema.xml found in module ' . $selectedModule));
         }

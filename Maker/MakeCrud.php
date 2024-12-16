@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 namespace Opengento\MakegentoCli\Maker;
 
+use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Magento\Framework\Exception\LocalizedException;
+use Opengento\MakegentoCli\Api\MakerInterface;
+use Opengento\MakegentoCli\Exception\ExistingClassException;
+use Opengento\MakegentoCli\Generator\GeneratorController;
 use Opengento\MakegentoCli\Generator\GeneratorCrud;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
+use Opengento\MakegentoCli\Generator\GeneratorUiComponent;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 
-class MakeCrud extends AbstractMaker
+class MakeCrud implements MakerInterface
 {
     public function __construct(
-        private readonly GeneratorCrud $generatorCrud
+        private readonly GeneratorCrud $generatorCrud,
+        private readonly GeneratorController $generatorController,
+        private readonly GeneratorUiComponent $generatorUiComponent,
+        private readonly YesNo                  $yesNoQuestionPerformer,
+        private readonly CommandIoProvider      $commandIoProvider,
     )
     {
     }
@@ -21,46 +29,47 @@ class MakeCrud extends AbstractMaker
      * @throws LocalizedException
      */
     public function generate(
-        InputInterface $input,
-        OutputInterface $output,
-        string $selectedModule,
-        string $entityName = ''
+        string $entityName = '',
     ): void {
         if (empty($entityName)) {
             throw new LocalizedException(__('Entity name is required'));
         }
-        $this->generateCrud($input, $output, $selectedModule, $entityName);
-    }
-
-    /**
-     * @throws LocalizedException
-     */
-    public function generateCrud(
-        InputInterface $input,
-        OutputInterface $output,
-        string $selectedModule,
-        string $entityName,
-    ): void {
-        $this->generatorCrud->setCurrentModuleName($selectedModule);
         $this->generatorCrud->setEntityName($entityName);
 
         // Generate route
-        $output->writeln('<info>Creating routes.xml</info>');
-        $this->generatorCrud->generateRoutes();
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating routes.xml</info>');
+        $route = $this->generatorCrud->generateRoutes();
         // Generate route
-        $output->writeln('<info>Creating menu.xml</info>');
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating menu.xml</info>');
         $this->generatorCrud->generateMenuEntry();
         // Generate acl
-        $output->writeln('<info>Creating acl.xml</info>');
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating acl.xml</info>');
         $this->generatorCrud->generateAcl();
         // Generate controller
-        $output->writeln('<info>Creating adminhtml controller</info>');
-        $this->generatorCrud->generateListingController();
-        // Generate layout
-        $output->writeln('<info>Creating layout</info>');
-        $this->generatorCrud->generateListingLayout();
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating adminhtml controller</info>');
+        $this->generatorController->setEntityName($entityName);
+        try {
+            $listingController = $this->generatorController->generateListingController();
+        } catch (ExistingClassException $e) {
+            $listingController = $e->getFilePath();
+        }
 
-        // Generate fucking ui components
-        $output->writeln('<info>Creating ui-component</info>');
+        // Ask user if he wants to generate a form
+        $generateForm = $this->yesNoQuestionPerformer->execute(
+            ['Do you want to generate a form for this entity? [y/n]'],
+            $this->commandIoProvider->getInput(),
+            $this->commandIoProvider->getOutput()
+        );
+        if ($generateForm) {
+            $formControllers = $this->generatorController->generateFormControllers();
+        }
+
+        // Generate layout
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating layout</info>');
+        $listingLayoutUiComponent = $this->generatorCrud->generateListingLayout();
+
+        // Generate ui components
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating ui-component</info>');
+        $this->generatorUiComponent->generateListing($entityName, $listingLayoutUiComponent, $route);
     }
 }

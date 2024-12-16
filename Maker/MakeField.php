@@ -3,19 +3,19 @@
 namespace Opengento\MakegentoCli\Maker;
 
 use Magento\Framework\Exception\FileSystemException;
+use Opengento\MakegentoCli\Api\MakerInterface;
 use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
 use Opengento\MakegentoCli\Exception\ExistingFieldException;
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
+use Opengento\MakegentoCli\Service\CurrentModule;
 use Opengento\MakegentoCli\Service\Database\ConstraintDefinition;
 use Opengento\MakegentoCli\Service\Database\DataTableAutoCompletion;
 use Opengento\MakegentoCli\Service\Database\DbSchemaCreator;
 use Opengento\MakegentoCli\Service\Database\DbSchemaParser;
 use Opengento\MakegentoCli\Service\Database\Field;
-use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 
-class MakeField extends AbstractMaker
+class MakeField implements MakerInterface
 {
 
     public function __construct(
@@ -24,23 +24,22 @@ class MakeField extends AbstractMaker
         private readonly DbSchemaParser          $dbSchemaParser,
         private readonly Field                   $field,
         private readonly ConstraintDefinition    $constraintDefinition,
-        protected readonly QuestionHelper        $questionHelper
+        private readonly CommandIoProvider       $commandIoProvider,
+        private readonly CurrentModule           $currentModule
     )
     {
     }
 
     /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
-     * @param string $selectedModule
      * @return void
      * @throws ConstraintDefinitionException
      * @throws FileSystemException
-     * @throws TableDefinitionException
+     * @throws TableDefinitionException|\Opengento\MakegentoCli\Exception\CommandIoNotInitializedException
      */
-    public function generate(InputInterface $input, OutputInterface $output, string $selectedModule): void
+    public function generate(): void
     {
-        $tableName = $this->dataTableAutoCompletion->tableSelector($input, $output, $selectedModule);
+        $selectedModule = $this->currentModule->getModuleName();
+        $tableName = $this->dataTableAutoCompletion->tableSelector($selectedModule);
         $dataTables = $this->dbSchemaParser->getModuleDataTables($selectedModule);
         if (!isset($dataTables[$tableName])) {
             throw new TableDefinitionException("Table $tableName does not exist in the module $selectedModule");
@@ -48,15 +47,15 @@ class MakeField extends AbstractMaker
         $primary = $dataTables[$tableName]['primary'] ?? '';
 
         try {
-            $field = $this->field->create($output, $input, $primary, $tableName);
+            $field = $this->field->create($primary, $tableName);
         } catch (ExistingFieldException $e) {
-            $output->writeln("<error>{$e->getMessage()}</error>");
+            $this->commandIoProvider->getOutput()->writeln("<error>{$e->getMessage()}</error>");
             return;
         }
         $existingFields = $dataTables[$tableName]['fields'];
         $dataTables[$tableName]['fields'] = array_merge($existingFields, $field);
 
-        $constraints = $this->constraintDefinition->define($output, $input, $tableName, $dataTables[$tableName]['fields'], $this->questionHelper);
+        $constraints = $this->constraintDefinition->define($tableName, $dataTables[$tableName]['fields']);
         $existingConstraints = $dataTables[$tableName]['constraints'];
         $dataTables[$tableName]['constraints'] = array_merge($existingConstraints, $constraints);
 

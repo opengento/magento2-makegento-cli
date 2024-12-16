@@ -13,33 +13,6 @@ use Magento\Framework\App\Filesystem\DirectoryList;
 class GeneratorModule extends Generator
 {
 
-    /** @var null|string $currentModule */
-    private ?string $currentModule = null;
-
-    /** @var null|string $entityName */
-    private ?string $entityName = null;
-
-    public function setCurrentModule(string $currentModule): self
-    {
-        $this->currentModule = $currentModule;
-        return $this;
-    }
-
-    public function getCurrentModule(): string
-    {
-        return $this->currentModule;
-    }
-
-    public function getModuleName(): string
-    {
-        return $this->getCurrentModule();
-    }
-
-    public function getModuleNameSnakeCase(): string
-    {
-        return $this->moduleNameSnakeCase;
-    }
-
     public function getComposerStandardModuleName(string $moduleVendorName, string $moduleName): string
     {
         return $this->stringTransformationTools->getKebabCase($moduleVendorName)
@@ -58,7 +31,7 @@ class GeneratorModule extends Generator
                 ->getPascalCase($this->stringTransformationTools->sanitizeString($moduleName));
         $fullMagentoStandardNewModuleName = $moduleVendorName . '_' . $moduleName;
 
-        $this->setCurrentModule($fullMagentoStandardNewModuleName);
+        $this->currentModule->setCurrentModule($fullMagentoStandardNewModuleName);
 
         $explodedPath = [
             DirectoryList::APP,

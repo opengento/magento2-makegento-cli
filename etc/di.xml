@@ -7,6 +7,8 @@
  -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Opengento\MakegentoCli\Service\CommandIoProvider" shared="true" />
+    <type name="Opengento\MakegentoCli\Service\CurrentModule" shared="true" />
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
@@ -41,6 +43,13 @@
         <arguments>
             <argument name="makeModel" xsi:type="object">Opengento\MakegentoCli\Maker\MakeModel\Proxy</argument>
             <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Opengento\MakegentoCli\Console\Command\Crud">
+        <arguments>
+            <argument name="makeModel" xsi:type="object">Opengento\MakegentoCli\Maker\MakeCrud\Proxy</argument>
+            <argument name="moduleSelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleModuleSelector\Proxy</argument>
+            <argument name="consoleCrudEntitySelector" xsi:type="object">Opengento\MakegentoCli\Utils\ConsoleCrudEntitySelector\Proxy</argument>
         </arguments>
     </type>
 </config>

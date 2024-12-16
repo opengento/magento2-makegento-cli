@@ -2,34 +2,50 @@
 
 namespace Opengento\MakegentoCli\Generator;
 
+use Magento\Framework\Filesystem\Io\File;
 use Opengento\MakegentoCli\Exception\ExistingClassException;
+use Opengento\MakegentoCli\Service\CurrentModule;
+use Opengento\MakegentoCli\Service\Php\ClassGenerator;
+use Opengento\MakegentoCli\Service\Php\InterfaceGenerator;
+use Opengento\MakegentoCli\Service\Php\NamespaceGetter;
+use Opengento\MakegentoCli\Utils\StringTransformationTools;
 
-class GeneratorModel extends AbstractPhpClassGenerator
+class GeneratorModel
 {
     public const RESOURCE_MODEL_PATH = '/Model/ResourceModel/';
+
+    public function __construct(
+        private readonly InterfaceGenerator $interfaceGenerator,
+        private readonly ClassGenerator $classGenerator,
+        private readonly File $ioFile,
+        private readonly StringTransformationTools $stringTransformationTools,
+        private readonly NamespaceGetter $namespaceGetter,
+        private readonly CurrentModule           $currentModule
+    )
+    {
+    }
 
     /**
      * Generate a model interface
      *
-     * @param string $modulePath
      * @param string $modelClassName
      * @param array $properties
-     * @param string $namespace
      * @return string
      * @throws ExistingClassException
      */
-    public function generateModelInterface(string $modulePath, string $modelClassName, array $properties, string $namespace = ''): string
+    public function generateModelInterface(string $modelClassName, array $properties): string
     {
+        $modulePath = $this->currentModule->getModulePath();
         $newFilePath = $modulePath . '/Api/Data/';
         $newFilePathWithName = $newFilePath . $modelClassName . 'Interface.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Api/Data', $namespace);
+        $namespace = $this->currentModule->getModuleNamespace('/Api/Data');
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Interface already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . 'Interface');
         }
 
-        $interfaceContent = $this->generatePhpInterface(
+        $interfaceContent = $this->interfaceGenerator->generate(
             $modelClassName . 'Interface',
             $namespace,
             $this->initInterfaceConst($properties),
@@ -48,18 +64,16 @@ class GeneratorModel extends AbstractPhpClassGenerator
     /**
      * Generate a model class for the model interface
      *
-     * @param string $modulePath
      * @param string $modelClassName
      * @param array $properties
      * @param string $interface
-     * @param string $namespace
      * @param string $subFolder
      * @return string
      * @throws ExistingClassException
      */
-    public function generateModel(string $modulePath, string $modelClassName, array $properties, string $interface, string $namespace = '', $subFolder = ''): string
+    public function generateModel(string $modelClassName, array $properties, string $interface, $subFolder = ''): string
     {
-
+        $modulePath = $this->currentModule->getModulePath();
         if (empty($subFolder)) {
             $subFolder = '/Model/';
         } else {
@@ -68,15 +82,16 @@ class GeneratorModel extends AbstractPhpClassGenerator
         $newFilePath = $modulePath . $subFolder;
         $newFilePathWithName = $newFilePath . $modelClassName . '.php';
 
-        $namespace = $this->getNamespace($modulePath, rtrim($subFolder, '/'), $namespace);
+        $namespace = $this->currentModule->getModuleNamespace(rtrim($subFolder, '/'));
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName);
         }
 
-        $classContent = $this->generatePhpClass(
+        $classContent = $this->classGenerator->generate(
             $modelClassName,
             $namespace,
+            [],
             [],
             $this->initGetterSetter($properties),
             '\Magento\Framework\Model\AbstractModel',
@@ -95,17 +110,16 @@ class GeneratorModel extends AbstractPhpClassGenerator
     /**
      * Generate a resource model class for the model
      *
-     * @param string $modulePath
      * @param string $modelClassName
      * @param string $modelClassInterface
      * @param string $tableName
-     * @param string $namespace
      * @param string $subFolder
      * @return string
      * @throws ExistingClassException
      */
-    public function generateResourceModel(string $modulePath, string $modelClassName, string $modelClassInterface, string $tableName, string $namespace = '', $subFolder = ''): string
+    public function generateResourceModel(string $modelClassName, string $modelClassInterface, string $tableName, string $subFolder = ''): string
     {
+        $modulePath = $this->currentModule->getModulePath();
         if (empty($subFolder)) {
             $subFolder = self::RESOURCE_MODEL_PATH;
         } else {
@@ -114,7 +128,7 @@ class GeneratorModel extends AbstractPhpClassGenerator
         $newFilePath = $modulePath . $subFolder;
         $newFilePathWithName = $newFilePath . $modelClassName . '.php';
 
-        $namespace = $this->getNamespace($modulePath, rtrim($subFolder, '/'), $namespace);
+        $namespace = $this->currentModule->getModuleNamespace(rtrim($subFolder, '/'), );
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Resource model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName);
@@ -125,9 +139,10 @@ class GeneratorModel extends AbstractPhpClassGenerator
             'visibility' => 'protected'
         ];
 
-        $classContent = $this->generatePhpClass(
+        $classContent = $this->classGenerator->generate(
             $modelClassName,
             $namespace,
+            [],
             [],
             $resourceModelConstructor,
             '\Magento\Framework\Model\ResourceModel\Db\AbstractDb'
@@ -145,16 +160,16 @@ class GeneratorModel extends AbstractPhpClassGenerator
     /**
      * Generate a collection class for the model and the resource model
      *
-     * @param string $modulePath
      * @param string $modelClassName
      * @param string $modelClass
      * @param string $resourceModelClass
-     * @param string $namespace
+     * @param string $subFolder
      * @return string
      * @throws ExistingClassException
      */
-    public function generateCollection(string $modulePath, string $modelClassName, string $modelClass, string $resourceModelClass, string $namespace = '', $subFolder = ''): string
+    public function generateCollection(string $modelClassName, string $modelClass, string $resourceModelClass, string $subFolder = ''): string
     {
+        $modulePath = $this->currentModule->getModulePath();
         if (empty($subFolder)) {
             $subFolder = self::RESOURCE_MODEL_PATH;
         } else {
@@ -163,10 +178,10 @@ class GeneratorModel extends AbstractPhpClassGenerator
         $newFilePath = $modulePath . $subFolder . $modelClassName . '/';
         $newFilePathWithName = $newFilePath . 'Collection.php';
 
-        $namespace = $this->getNamespace($modulePath, rtrim($subFolder . $modelClassName, '/'), $namespace);
+        $namespace = $this->currentModule->getModuleNamespace(rtrim($subFolder . $modelClassName, '/'));
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
-            throw new ExistingClassException('Collection already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . '\\Collection');
+            throw new ExistingClassException('Collection already exists', $newFilePathWithName, '\\' . $namespace . '\\Collection');
         }
 
         $collectionConstructor['_construct'] = [
@@ -174,9 +189,10 @@ class GeneratorModel extends AbstractPhpClassGenerator
             'visibility' => 'protected'
         ];
 
-        $classContent = $this->generatePhpClass(
+        $classContent = $this->classGenerator->generate(
             'Collection',
             $namespace,
+            [],
             [],
             $collectionConstructor,
             '\Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection'
@@ -201,7 +217,7 @@ class GeneratorModel extends AbstractPhpClassGenerator
     {
         $methods = [];
         foreach ($properties as $property => $definition) {
-            $type = $this->getPhpTypeFromEntityType($definition['type']);
+            $type = $this->classGenerator->getPhpTypeFromEntityType($definition['type']);
             $constName = $this->getConstName($property, $definition);
             $methods["get" . $this->stringTransformationTools->getPascalCase($property)] = [
                 'arguments' => [],

@@ -19,5 +19,5 @@ interface MakerInterface
     /**
      * Called after normal code generation: allows you to do anything.
      */
-    public function generate(InputInterface $input, OutputInterface $output, string $selectedModule);
+    public function generate();
 }

@@ -4,9 +4,7 @@ namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
-use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 
@@ -15,7 +13,8 @@ class ConstraintDefinition
 
     public function __construct(
         private readonly YesNo                  $yesNoQuestionPerformer,
-        private readonly DataTableAutoCompletion $dataTableAutoCompletion
+        private readonly DataTableAutoCompletion $dataTableAutoCompletion,
+        private readonly CommandIoProvider      $commandIoProvider
     )
     {
     }
@@ -41,16 +40,16 @@ class ConstraintDefinition
      * chooses to create a foreign key, it will ask for the reference table and field. Autocompletion is available for
      * both table and fields.
      *
-     * @param OutputInterface $output
-     * @param InputInterface $input
      * @param string $tableName
      * @param array $fields
-     * @param QuestionHelper $questionHelper
      * @return array
      * @throws ConstraintDefinitionException
      */
-    public function define(OutputInterface $output, InputInterface $input, string $tableName, array $fields, QuestionHelper $questionHelper): array
+    public function define(string $tableName, array $fields): array
     {
+        $input = $this->commandIoProvider->getInput();
+        $output = $this->commandIoProvider->getOutput();
+        $questionHelper = $this->commandIoProvider->getQuestionHelper();
         if (!$this->yesNoQuestionPerformer->execute(
             ['Do you want to add constraint? [y/n]'],
             $input,

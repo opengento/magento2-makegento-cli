@@ -4,11 +4,8 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="Magento_Reports::report">
-                    <resource id="Magento_Reports::customers">
-                        <resource id="{{module_name}}::listing" title="{{aclTitle}}" translate="title" sortOrder="42"/>
-                   </resource>
-                </resource>
+                <resource id="{{module_name}}::view" title="{{aclTitleView}}" translate="title" sortOrder="10"/>
+                <resource id="{{module_name}}::manage" title="{{aclTitleManage}}" translate="title" sortOrder="15"/>
             </resource>
         </resources>
     </acl>

@@ -4,6 +4,7 @@ namespace Opengento\MakegentoCli\Console\Command\Database;
 
 use Opengento\MakegentoCli\Exception\TableDefinitionException;
 use Opengento\MakegentoCli\Maker\MakeField;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Opengento\MakegentoCli\Utils\ConsoleModuleSelector;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,7 +15,8 @@ class Field extends Command
 
     public function __construct(
         private readonly ConsoleModuleSelector $moduleSelector,
-        private readonly MakeField $makeField
+        private readonly MakeField $makeField,
+        private readonly CommandIoProvider $commandIoProvider,
     )
     {
         parent::__construct();
@@ -35,15 +37,16 @@ class Field extends Command
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $questionHelper = $this->getHelper('question');
+        $this->commandIoProvider->init($input, $output, $questionHelper);
 
         try {
-            $selectedModule = $this->moduleSelector->execute($input, $output, $questionHelper, true);
+            $selectedModule = $this->moduleSelector->execute(true);
         } catch (\Exception $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
             return Command::FAILURE;
         }
 
-        $this->makeField->generate($input, $output, $selectedModule);
+        $this->makeField->generate($selectedModule);
         return Command::SUCCESS;
     }
 }

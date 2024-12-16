@@ -2,10 +2,25 @@
 
 namespace Opengento\MakegentoCli\Generator;
 
+use Magento\Framework\Filesystem\Io\File;
 use Opengento\MakegentoCli\Exception\ExistingClassException;
+use Opengento\MakegentoCli\Service\CurrentModule;
+use Opengento\MakegentoCli\Service\Php\ClassGenerator;
+use Opengento\MakegentoCli\Service\Php\InterfaceGenerator;
+use Opengento\MakegentoCli\Service\Php\NamespaceGetter;
 
-class GeneratorRepository extends AbstractPhpClassGenerator
+class GeneratorRepository
 {
+    public function __construct(
+        private readonly ClassGenerator $classGenerator,
+        private readonly InterfaceGenerator $interfaceGenerator,
+        private readonly File $ioFile,
+        private readonly NamespaceGetter $namespaceGetter,
+        private readonly CurrentModule           $currentModule
+    )
+    {
+
+    }
 
     /**
      * @param string $modulePath
@@ -14,18 +29,19 @@ class GeneratorRepository extends AbstractPhpClassGenerator
      * @return string
      * @throws ExistingClassException
      */
-    public function generateSearchCriteriaInterface(string $modulePath, string $modelClassName, $namespace = ''): string
+    public function generateSearchCriteriaInterface(string $modelClassName): string
     {
+        $modulePath = $this->currentModule->getModulePath();
         $newFilePath = $modulePath . '/Api/Data/';
         $newFilePathWithName = $newFilePath . $modelClassName . 'SearchCriteriaInterface.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Api/Data', $namespace);
+        $namespace = $this->currentModule->getModuleNamespace('/Api/Data');
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Interface already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . 'SearchCriteriaInterface');
         }
 
-        $interfaceContent = $this->generatePhpInterface(
+        $interfaceContent = $this->interfaceGenerator->generate(
             $modelClassName . 'SearchCriteriaInterface',
             $namespace,
             [],
@@ -56,25 +72,24 @@ class GeneratorRepository extends AbstractPhpClassGenerator
      * @throws ExistingClassException
      */
     public function generateRepositoryInterface(
-        string $modulePath,
         string $modelClassName,
         string $searchCriteriaInterface,
         string $resourceClass,
         string $collectionClass,
-        string $modelInterface,
-        string $namespace = ''
+        string $modelInterface
     ): string
     {
+        $modulePath = $this->currentModule->getModulePath();
         $newFilePath = $modulePath . '/Api/';
         $newFilePathWithName = $newFilePath . $modelClassName . 'RepositoryInterface.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Api', $namespace);
+        $namespace = $this->currentModule->getModuleNamespace( '/Api');
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Interface already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . 'RepositoryInterface');
         }
 
-        $interfaceContent = $this->generatePhpInterface(
+        $interfaceContent = $this->interfaceGenerator->generate(
             $modelClassName . 'RepositoryInterface',
             $namespace,
             [],
@@ -91,42 +106,40 @@ class GeneratorRepository extends AbstractPhpClassGenerator
     }
 
     /**
-     * @param string $modulePath
      * @param string $modelClassName
      * @param string $searchCriteriaInterface
      * @param string $resourceClass
      * @param string $collectionClass
      * @param string $modelInterface
      * @param string $repositoryInterface
-     * @param string $namespace
      * @return string
      * @throws ExistingClassException
      */
     public function generateRepository(
-        string $modulePath,
         string $modelClassName,
         string $searchCriteriaInterface,
         string $resourceClass,
         string $collectionClass,
         string $modelInterface,
         string $repositoryInterface,
-        string $namespace = ''
     ): string
     {
+        $modulePath = $this->currentModule->getModulePath();
         $newFilePath = $modulePath . '/Model/';
         $newFilePathWithName = $newFilePath . $modelClassName . 'Repository.php';
 
-        $namespace = $this->getNamespace($modulePath, '/Model', $namespace);
+        $namespace = $this->currentModule->getModuleNamespace('/Model');
 
         if ($this->ioFile->fileExists($newFilePathWithName)) {
             throw new ExistingClassException('Model already exists', $newFilePathWithName, '\\' . $namespace . '\\' . $modelClassName . 'Repository');
         }
 
-        $repositoryContent = $this->generatePhpClass(
+        $repositoryContent = $this->classGenerator->generate(
             $modelClassName . 'Repository',
             $namespace,
             [],
-            $this->getRepositoryMethods($modelClassName, $searchCriteriaInterface, $resourceClass, $collectionClass, $modelInterface, $namespace),
+            [],
+            $this->getRepositoryMethods($modelClassName, $searchCriteriaInterface, $resourceClass, $collectionClass, $modelInterface),
             '',
             [$repositoryInterface]
         );
@@ -145,11 +158,11 @@ class GeneratorRepository extends AbstractPhpClassGenerator
         string $searchCriteriaInterface,
         string $resourceClass,
         string $collectionClass,
-        string $modelInterface,
-        string $namespace
+        string $modelInterface
     ): array
     {
-        $modelFactoryClass = '\\' . $namespace . '\\' . $modelClassName . 'Factory';
+        $namespace = $this->currentModule->getModuleNamespace('');
+        $modelFactoryClass = '\\' . $namespace . '\\Model\\' . $modelClassName . 'Factory';
         $collectionFactoryClass = $collectionClass.'Factory';
         $searchCriteriaInterfaceFactoryClass = $searchCriteriaInterface.'Factory';
 
