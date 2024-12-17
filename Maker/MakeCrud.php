@@ -66,7 +66,7 @@ class MakeCrud implements MakerInterface
 
         // Generate layout
         $this->commandIoProvider->getOutput()->writeln('<info>Creating layout</info>');
-        $listingLayoutUiComponent = $this->generatorCrud->generateListingLayout();
+        $listingLayoutUiComponent = $this->generatorCrud->generateListingLayout($route);
 
         // Generate ui components
         $this->commandIoProvider->getOutput()->writeln('<info>Creating ui-component</info>');

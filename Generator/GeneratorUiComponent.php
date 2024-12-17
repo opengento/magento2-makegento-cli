@@ -129,7 +129,7 @@ class GeneratorUiComponent
                     [
                         'name' => 'resourceModel',
                         'type' => 'string',
-                        'value' => $this->resourceModel
+                        'value' => $this->getResource()::class
                     ]
                 ]
             ]

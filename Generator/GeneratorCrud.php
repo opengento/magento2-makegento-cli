@@ -121,20 +121,18 @@ class GeneratorCrud extends Generator
     /**
      * Generate Listing Layout file
      *
+     * @param string $route
      * @return string
      * @throws LocalizedException
      */
-    public function generateListingLayout(): string
+    public function generateListingLayout(string $route): string
     {
         $templatePath = $this->reader->getModuleDir(null, self::OPENGENTO_MAKEGENTO_CLI)
             . '/Generator/templates/view/adminhtml/layout/listing.xml.tpl';
 
-        $layoutName = $this->currentModule->getModuleNameSnakeCase()
-            . '_'
-            . strtolower($this->getEntityName()) . '_' . self::LISTING;
+        $layoutName = $route . '_' . strtolower($this->getEntityName()) . '_index';
 
-        $layoutUiComponentName = strtolower($this->currentModule->getModuleNameWithoutVendor())
-            . '_' . strtolower($this->getEntityName()) . '_' . self::LISTING;
+        $layoutUiComponentName = $route . '_' . strtolower($this->getEntityName()) . '_' . self::LISTING;
 
         $layoutFileName = $layoutName . self::XML_EXTENSION;
 
