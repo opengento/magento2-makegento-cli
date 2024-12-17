@@ -54,7 +54,7 @@ class GeneratorController extends Generator
         $filePathWithName = $filePath . '/Index.php';
 
         if ($this->ioFile->fileExists($filePath)) {
-            throw new ExistingClassException("Controller already exists", $filePath);
+            throw new ExistingClassException("Controller already exists", strtolower($controllerPath).'/index');
         }
 
         $namespace = $this->currentModule->getModuleNamespace('/Controller/Adminhtml/' . $this->getEntityName());
@@ -89,7 +89,7 @@ class GeneratorController extends Generator
             $filePathWithName,
             $listingControllerContent
         );
-        return $filePathWithName;
+        return strtolower($controllerPath).'/index';
     }
 
     /**

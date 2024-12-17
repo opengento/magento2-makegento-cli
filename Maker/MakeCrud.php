@@ -39,9 +39,6 @@ class MakeCrud implements MakerInterface
         // Generate route
         $this->commandIoProvider->getOutput()->writeln('<info>Creating routes.xml</info>');
         $route = $this->generatorCrud->generateRoutes();
-        // Generate route
-        $this->commandIoProvider->getOutput()->writeln('<info>Creating menu.xml</info>');
-        $this->generatorCrud->generateMenuEntry();
         // Generate acl
         $this->commandIoProvider->getOutput()->writeln('<info>Creating acl.xml</info>');
         $this->generatorCrud->generateAcl();
@@ -49,10 +46,13 @@ class MakeCrud implements MakerInterface
         $this->commandIoProvider->getOutput()->writeln('<info>Creating adminhtml controller</info>');
         $this->generatorController->setEntityName($entityName);
         try {
-            $listingController = $this->generatorController->generateListingController();
+            $listingControllerRoute = $this->generatorController->generateListingController();
         } catch (ExistingClassException $e) {
-            $listingController = $e->getFilePath();
+            $listingControllerRoute = $e->getFilePath();
         }
+        // Generate route
+        $this->commandIoProvider->getOutput()->writeln('<info>Creating menu.xml</info>');
+        $this->generatorCrud->generateMenuEntry($route, $listingControllerRoute);
 
         // Ask user if he wants to generate a form
         $generateForm = $this->yesNoQuestionPerformer->execute(

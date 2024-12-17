@@ -6,7 +6,7 @@
              title="{{menuEntryTitle}}"
              module="{{module_name}}"
              sortOrder="{{order}}"
-             action="{{frontName}}/{{controllerName}}"
+             action="{{frontName}}/{{controller}}/{{action}}"
              resource="{{module_name}}::index" />
     </menu>
 </config>

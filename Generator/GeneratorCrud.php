@@ -85,27 +85,28 @@ class GeneratorCrud extends Generator
      * @return void
      * @throws LocalizedException
      */
-    public function generateMenuEntry(): void
+    public function generateMenuEntry(string $route, string $listingControllerRoute): void
     {
-        $moduleNameSnakeCase = $this->currentModule->getModuleNameSnakeCase();
-
         $templatePath = $this->reader->getModuleDir(null, self::OPENGENTO_MAKEGENTO_CLI)
             . '/Generator/templates/etc/adminhtml/menu.xml.tpl';
+
+        list($controller, $action) = explode('/', $listingControllerRoute);
 
         $fieldsToUpdate = [
             '{{module_name}}',
             '{{menuEntryTitle}}',
             '{{order}}',
             '{{frontName}}',
-            '{{controllerName}}',
+            '{{controller}}',
+            '{{action}}'
         ];
         $fieldsReplacement = [
             $this->currentModule->getModuleName(),
             str_replace('_', ' ', $this->currentModule->getModuleName()),
             '42',
-            $moduleNameSnakeCase,
-            mb_strtolower($this->stringTransformationTools->getCamelCase($this->getEntityName()), 'UTF-8')
-            . '/' . self::LISTING,
+            $route,
+            $controller,
+            $action
         ];
 
         $this->generate(

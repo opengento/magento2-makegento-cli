@@ -153,9 +153,11 @@ class GeneratorUiComponent
 
         foreach ($entriesToAdd as $entry) {
             $additionalXml .= '    <virtualType name="' . $entry['name'] . '" type="' . $entry['type'] . '">' . PHP_EOL;
+            $additionalXml .= '        <arguments>' . PHP_EOL;
             foreach ($entry['arguments'] as $argument) {
                 $additionalXml .= $this->getArgumentLine($argument);
             }
+            $additionalXml .= '        </arguments>' . PHP_EOL;
             $additionalXml .= '    </virtualType>' . PHP_EOL;
         }
 
@@ -251,7 +253,7 @@ class GeneratorUiComponent
         if ($argument['type'] === 'array') {
             $value = '';
             foreach ($argument['value'] as $item) {
-                $value .= $this->getArgumentLine($item);
+                $value .= '<item name="' . $item['name'] . '" xsi:type="' . $item['type'] . '">' . $item['value'] . '</item>' . PHP_EOL;
             }
             return '        <argument name="' . $argument['name'] . '" xsi:type="' . $argument['type'] . '">' . PHP_EOL . $value . '        </argument>' . PHP_EOL;
         }
