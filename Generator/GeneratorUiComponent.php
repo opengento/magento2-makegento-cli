@@ -23,15 +23,15 @@ class GeneratorUiComponent
     private ?\Magento\Framework\Model\ResourceModel\Db\AbstractDb $resource = null;
 
     public function __construct(
-        private readonly File            $ioFile,
-        private readonly Reader          $reader,
+        private readonly File                   $ioFile,
+        private readonly Reader                 $reader,
         private readonly ObjectManagerInterface $objectManager,
-        private readonly CurrentModule   $currentModule
+        private readonly CurrentModule          $currentModule
     )
     {
     }
 
-    public function generateListing(string $entityName, string $listingLayoutUiComponent, string $route)
+    public function generateListing(string $entityName, string $listingLayoutUiComponent, string $route): void
     {
         $this->modulePath = $this->currentModule->getModulePath();
         $this->resourceModel = $entityName;
@@ -42,6 +42,9 @@ class GeneratorUiComponent
         $this->addUiComponent();
     }
 
+    /**
+     * @throws LocalizedException
+     */
     private function getResource(): \Magento\Framework\Model\ResourceModel\Db\AbstractDb
     {
         if ($this->resource === null) {
@@ -74,9 +77,9 @@ class GeneratorUiComponent
         $mainTable = $this->getResource()->getMainTable();
         $this->dataProviderName = $this->currentModule->getModuleNamespace() . '\Ui\DataProvider\\' . $this->resourceModel;
         $filterPoolName = $this->currentModule->getModuleNamespace() . '\Ui\FilterPool\\' . $this->resourceModel;
-        $this->gridCollectionName = $this->resourceModel . '\Grid\Collection';
+        $this->gridCollectionName = $this->currentModule->getModuleNamespace() . '\\' . $this->resourceModel . '\Grid\Collection';
         $virtualTypes = [
-            [
+            "dataprovider" => [
                 'name' => $this->dataProviderName,
                 'type' => 'Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider',
                 'arguments' => [
@@ -92,7 +95,7 @@ class GeneratorUiComponent
                     ]
                 ]
             ],
-            [
+            "filterpool" => [
                 'name' => $filterPoolName,
                 'type' => 'Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool',
                 'arguments' => [
@@ -114,7 +117,7 @@ class GeneratorUiComponent
                     ]
                 ]
             ],
-            [
+            "collection" => [
                 'name' => $this->gridCollectionName,
                 'type' => 'Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult',
                 'arguments' => [
@@ -146,70 +149,102 @@ class GeneratorUiComponent
         $path = $this->modulePath . '/etc/di.xml';
         $xmlContent = $this->ioFile->read($path);
         $additionalXml = '';
-        $attributes = [
-            'name' => 'name=[\'"](?P<name>[^\'"]+)[\'"]',
-            'type' => 'type=[\'"](?P<type>[^\'"]+)[\'"]',
-        ];
+        $entriesToAdd = $this->filterEntries($entries, $xmlContent);
 
-        $regex = '/<virtualType\s+(?:' . implode('|', $attributes) . ')+\s*>/i';
-        foreach ($entries as $entry) {
-            $entryExists = false;
-
-            // @todo does not look to work as new entries are always added
-            if (preg_match_all($regex, $xmlContent, $matches, PREG_SET_ORDER)) {
-                foreach ($matches as $match) {
-                    if ($match['name'] === $entry['name'] && $match['type'] === $entry['type']) {
-                        $entryExists = true;
-                        break;
-                    }
-                }
+        foreach ($entriesToAdd as $entry) {
+            $additionalXml .= '    <virtualType name="' . $entry['name'] . '" type="' . $entry['type'] . '">' . PHP_EOL;
+            foreach ($entry['arguments'] as $argument) {
+                $additionalXml .= $this->getArgumentLine($argument);
             }
-            if (!$entryExists) {
-                $additionalXml .= '    <virtualType name="' . $entry['name'] . '" type="' . $entry['type'] . '">' . PHP_EOL;
-                foreach ($entry['arguments'] as $argument) {
-                    $additionalXml .= $this->getArgumentLine($argument);
-                }
-                $additionalXml .= '    </virtualType>' . PHP_EOL;
-            }
+            $additionalXml .= '    </virtualType>' . PHP_EOL;
         }
 
         if (!empty($additionalXml)) {
             $xmlContent = str_replace('</config>', $additionalXml . '</config>', $xmlContent);
         }
 
-        $typeRegex = '/<type\s+name=[\'"]Magento\\\Framework\\\View\\\Element\\\UiComponent\\\DataProvider\\\CollectionFactory[\'"]\s*>.*?<\/type>/s';
-
-        /**
-         * If the type already exists, we add the new item to the arguments array. Else, we create the type.
-         */
-        if (preg_match($typeRegex, $xmlContent, $typeMatch)) {
-            $typeContent = $typeMatch[0];
-
-            $itemRegex = '/<item\s+name=[\'"]' . preg_quote($this->listingLayoutUiComponent, '/') . '[\'"]\s+xsi:type=[\'"]string[\'"]\s*>.*?<\/item>/';
-            if (!preg_match($itemRegex, $typeContent)) {
-                $newItem = '                <item name="' . $this->listingLayoutUiComponent . '" xsi:type="string">' . $this->gridCollectionName . '</item>' . PHP_EOL;
-                $typeContent = preg_replace(
-                    '/<\/arguments>\s*<\/type>/',
-                    $newItem . '            </arguments>' . PHP_EOL . '        </type>',
-                    $typeContent
-                );
-            }
-
-            $xmlContent = str_replace($typeMatch[0], $typeContent, $xmlContent);
-        } else {
-            $newType = '    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">' . PHP_EOL;
-            $newType .= '        <arguments>' . PHP_EOL;
-            $newType .= '            <argument name="collections" xsi:type="array">' . PHP_EOL;
-            $newType .= '                <item name="' . $this->listingLayoutUiComponent . '" xsi:type="string">' . $this->gridCollectionName . '</item>' . PHP_EOL;
-            $newType .= '            </argument>' . PHP_EOL;
-            $newType .= '        </arguments>' . PHP_EOL;
-            $newType .= '    </type>' . PHP_EOL;
-
-            $xmlContent = str_replace('</config>', $newType . '</config>', $xmlContent);
-        }
+        $xmlContent = $this->addOrUpdateCollectionFactory($xmlContent);
 
         $this->ioFile->write($path, $xmlContent);
     }
+
+    /**
+     * Filter the entries to add only the ones that don't already exist in the di.xml file.
+     */
+    private function filterEntries(array $entries, string $xmlContent): array
+    {
+        $regex = '/<virtualType\s+(?:(?:name="(?P<name1>[^"]+)"\s+type="(?P<type1>[^"]+)")|(?:type="(?P<type2>[^"]+)"\s+name="(?P<name2>[^"]+)"))\s*>/i';
+
+        $existingEntries = [];
+        if (preg_match_all($regex, $xmlContent, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $name = $match['name1'] ?: $match['name2'];
+                $type = $match['type1'] ?: $match['type2'];
+                $existingEntries["{$name}_{$type}"] = true;
+            }
+        }
+
+        return array_filter($entries, function ($entry) use ($existingEntries) {
+            $key = "{$entry['name']}_{$entry['type']}";
+            return !isset($existingEntries[$key]);
+        });
+    }
+
+    /**
+     * If the type already exists, we add the new item to the arguments array. Else, we create the type.
+     */
+    private function addOrUpdateCollectionFactory(string $xmlContent): string
+    {
+        $typeRegex = '/<type\s+name=[\'"]Magento\\\Framework\\\View\\\Element\\\UiComponent\\\DataProvider\\\CollectionFactory[\'"]\s*>.*?<\/type>/s';
+        $itemRegex = '/<item\s+name=[\'"]' . preg_quote($this->listingLayoutUiComponent, '/') . '_data_source[\'"]\s+xsi:type=[\'"]string[\'"]\s*>.*?<\/item>/';
+
+        $newItem = '                <item name="' . $this->listingLayoutUiComponent . '_data_source" xsi:type="string">'
+            . $this->gridCollectionName . '</item>' . PHP_EOL;
+
+        // If type already exists, we add the new item to the arguments array
+        if (preg_match($typeRegex, $xmlContent, $typeMatch)) {
+            $typeContent = $typeMatch[0];
+
+            // Check if the item already exists, if not, we add it
+            if (!preg_match($itemRegex, $typeContent)) {
+                $updatedContent = $this->insertItemIntoType($typeContent, $newItem);
+                $xmlContent = str_replace($typeMatch[0], $updatedContent, $xmlContent);
+            }
+        } else {
+            // If the type doesn't exist, we create it
+            $newType = $this->generateNewType($newItem);
+            $xmlContent = str_replace('</config>', $newType . '</config>', $xmlContent);
+        }
+
+        return $xmlContent;
+    }
+
+    /**
+     * Insert the new item into the existing type.
+     */
+    private function insertItemIntoType(string $typeContent, string $newItem): string
+    {
+        return preg_replace(
+            '/<\/argument><\/arguments>\s*<\/type>/',
+            $newItem . '</argument>' . PHP_EOL . '            </arguments>' . PHP_EOL . '        </type>',
+            $typeContent
+        );
+    }
+
+    /**
+     * Generate the new type for the collection factory with the new item in the arguments array.
+     */
+    private function generateNewType(string $newItem): string
+    {
+        return '    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">' . PHP_EOL
+            . '        <arguments>' . PHP_EOL
+            . '            <argument name="collections" xsi:type="array">' . PHP_EOL
+            . $newItem
+            . '            </argument>' . PHP_EOL
+            . '        </arguments>' . PHP_EOL
+            . '    </type>' . PHP_EOL;
+    }
+
 
     private function getArgumentLine(array $argument): string
     {
@@ -279,7 +314,7 @@ class GeneratorUiComponent
                         <item name="name" xsi:type="string">add</item>
                         <item name="label" xsi:type="string" translate="true">Create new ' . strtolower($this->entityName) . '</item>
                         <item name="class" xsi:type="string">primary</item>
-                        <item name="url" xsi:type="string">*/'.$this->route.'/create</item>
+                        <item name="url" xsi:type="string">*/' . $this->route . '/create</item>
                     </item>
                 </item>';
         }

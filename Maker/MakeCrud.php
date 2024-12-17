@@ -71,5 +71,7 @@ class MakeCrud implements MakerInterface
         // Generate ui components
         $this->commandIoProvider->getOutput()->writeln('<info>Creating ui-component</info>');
         $this->generatorUiComponent->generateListing($entityName, $listingLayoutUiComponent, $route);
+
+        $this->commandIoProvider->getOutput()->writeln('<info>Crud for entity ' . $entityName . ' has been created</info>');
     }
 }
