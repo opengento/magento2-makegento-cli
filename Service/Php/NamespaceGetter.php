@@ -49,7 +49,7 @@ class NamespaceGetter
             $output = $this->commandIoProvider->getOutput();
             $input = $this->commandIoProvider->getInput();
             $questionHelper = $this->commandIoProvider->getQuestionHelper();
-            $proposedNamespace = str_replace('_', '\\', $selectedModule).'\\';
+            $proposedNamespace = str_replace('_', '\\', $selectedModule);
             $output->writeln('<info>Namespace not found, please set it manually</info>');
             $namespaceQuestion = new Question('Enter the namespace <info>[default : ' . $proposedNamespace . '] : ', $proposedNamespace);
             $inputNamespace = $questionHelper->ask($input, $output, $namespaceQuestion);

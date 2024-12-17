@@ -2,6 +2,7 @@
 
 namespace Opengento\MakegentoCli\Generator;
 
+use FilesystemIterator;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem\Io\File;
 use Magento\Framework\Module\Dir\Reader;
@@ -48,18 +49,23 @@ class GeneratorUiComponent
     private function getResource(): \Magento\Framework\Model\ResourceModel\Db\AbstractDb
     {
         if ($this->resource === null) {
-            $modelFiles = glob($this->modulePath . '/Model/ResourceModel/*');
-            foreach ($modelFiles as $modelFile) {
-                $modelFileParts = explode('/', $modelFile);
-                $modelFileName = end($modelFileParts);
-                $modelFileNameParts = explode('.', $modelFileName);
-                $modelFileName = reset($modelFileNameParts);
-                if ($modelFileName === $this->resourceModel) {
-                    $resourceModelClass = $this->currentModule->getModuleNamespace('/Model/ResourceModel') . '\\' . $modelFileName;
-                    $this->resource = $this->objectManager->create($resourceModelClass);
-                    break;
+            $directory = new \RecursiveDirectoryIterator($this->modulePath . '/Model/ResourceModel', FilesystemIterator::SKIP_DOTS);
+            $iterator = new \RecursiveIteratorIterator($directory, \RecursiveIteratorIterator::SELF_FIRST);
+
+            foreach ($iterator as $file) {
+                if ($file->isFile()) {
+                    $modelFileName = $file->getBasename('.php');
+                    if ($modelFileName === $this->resourceModel) {
+                        // strip the path from the module path
+                        $path = str_replace($this->modulePath, '', $file->getPath());
+                        $path = str_replace('/', '\\', $path);
+                        $resourceModelClass = $this->currentModule->getModuleNamespace(). $path . '\\' . $modelFileName;
+                        $this->resource = $this->objectManager->create($resourceModelClass);
+                        break;
+                    }
                 }
             }
+
             if ($this->resource === null) {
                 throw new LocalizedException(__('Resource model not found'));
             }
