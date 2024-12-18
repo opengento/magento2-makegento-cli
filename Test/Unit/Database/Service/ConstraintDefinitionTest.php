@@ -4,6 +4,7 @@ namespace Opengento\MakegentoCli\Test\Unit\Database\Service;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
 use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Opengento\MakegentoCli\Service\Database\ConstraintDefinition;
 use Opengento\MakegentoCli\Service\Database\DataTableAutoCompletion;
 use PHPUnit\Framework\TestCase;
@@ -13,21 +14,22 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ConstraintDefinitionTest extends TestCase
 {
-    private $yesNoQuestionPerformer;
     private $dataTableAutoCompletion;
     private $constraintDefinition;
-    private $input;
-    private $output;
     private $questionHelper;
 
     protected function setUp(): void
     {
         $this->yesNoQuestionPerformer = $this->createMock(YesNo::class);
         $this->dataTableAutoCompletion = $this->createMock(DataTableAutoCompletion::class);
-        $this->constraintDefinition = new ConstraintDefinition($this->yesNoQuestionPerformer, $this->dataTableAutoCompletion);
-        $this->input = $this->createMock(InputInterface::class);
-        $this->output = $this->createMock(OutputInterface::class);
+        $input = $this->createMock(InputInterface::class);
+        $output = $this->createMock(OutputInterface::class);
         $this->questionHelper = $this->createMock(QuestionHelper::class);
+        $commandIoProvider = $this->createMock(CommandIoProvider::class);
+        $commandIoProvider->method('getInput')->willReturn($input);
+        $commandIoProvider->method('getOutput')->willReturn($output);
+        $commandIoProvider->method('getQuestionHelper')->willReturn($this->questionHelper);
+        $this->constraintDefinition = new ConstraintDefinition($this->yesNoQuestionPerformer, $this->dataTableAutoCompletion, $commandIoProvider);
     }
 
     /**
@@ -47,7 +49,7 @@ class ConstraintDefinitionTest extends TestCase
         $this->dataTableAutoCompletion->method('getAllTables')->willReturn(['reference_table']);
         $this->dataTableAutoCompletion->method('getTableFields')->willReturn(['identity' => 'id', 'fields' => ['reference_column']]);
 
-        $result = $this->constraintDefinition->define($this->output, $this->input, 'table_name', ['column1' => 'int'], $this->questionHelper);
+        $result = $this->constraintDefinition->define('table_name', ['column1' => 'int']);
 
         $expected = [
             'TABLE_NAME_COLUMN1_REFERENCE_TABLE_REFERENCE_COLUMN' => [
@@ -77,7 +79,7 @@ class ConstraintDefinitionTest extends TestCase
                 '' // End of columns
             ));
 
-        $result = $this->constraintDefinition->define($this->output, $this->input, 'table_name', ['column1' => 'int'], $this->questionHelper);
+        $result = $this->constraintDefinition->define('table_name', ['column1' => 'int']);
 
         $expected = [
             'constraint_name' => [
@@ -96,7 +98,7 @@ class ConstraintDefinitionTest extends TestCase
     {
         $this->yesNoQuestionPerformer->method('execute')->willReturn(false);
 
-        $result = $this->constraintDefinition->define($this->output, $this->input, 'table_name', ['column1' => 'int'], $this->questionHelper);
+        $result = $this->constraintDefinition->define('table_name', ['column1' => 'int']);
 
         $this->assertEmpty($result);
     }

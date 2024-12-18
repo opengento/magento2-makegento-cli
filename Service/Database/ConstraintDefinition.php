@@ -3,6 +3,7 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\Console\QuestionPerformer\YesNo;
+use Opengento\MakegentoCli\Exception\CommandIoNotInitializedException;
 use Opengento\MakegentoCli\Exception\ConstraintDefinitionException;
 use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Symfony\Component\Console\Question\ChoiceQuestion;
@@ -43,7 +44,7 @@ class ConstraintDefinition
      * @param string $tableName
      * @param array $fields
      * @return array
-     * @throws ConstraintDefinitionException
+     * @throws ConstraintDefinitionException|CommandIoNotInitializedException
      */
     public function define(string $tableName, array $fields): array
     {

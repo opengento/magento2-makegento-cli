@@ -3,6 +3,7 @@
 namespace Opengento\MakegentoCli\Test\Unit\Database\Service;
 
 use Magento\Framework\App\ResourceConnection;
+use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Opengento\MakegentoCli\Service\Database\DataTableAutoCompletion;
 use Opengento\MakegentoCli\Service\Database\DbSchemaParser;
 use PHPUnit\Framework\TestCase;
@@ -19,10 +20,17 @@ class DataTableAutoCompletionTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->questionHelper = $this->createMock(QuestionHelper::class);
         $this->resourceConnection = $this->createMock(ResourceConnection::class);
         $this->dbSchemaParser = $this->createMock(DbSchemaParser::class);
-        $this->dataTableAutoCompletion = new DataTableAutoCompletion($this->questionHelper, $this->resourceConnection, $this->dbSchemaParser);
+        $input = $this->createMock(InputInterface::class);
+        $output = $this->createMock(OutputInterface::class);
+        $this->questionHelper = $this->createMock(QuestionHelper::class);
+        $commandIoProvider = $this->createMock(CommandIoProvider::class);
+        $commandIoProvider->init($input, $output, $this->questionHelper);
+        $commandIoProvider->method('getInput')->willReturn($input);
+        $commandIoProvider->method('getOutput')->willReturn($output);
+        $commandIoProvider->method('getQuestionHelper')->willReturn($this->questionHelper);
+        $this->dataTableAutoCompletion = new DataTableAutoCompletion($this->resourceConnection, $this->dbSchemaParser, $commandIoProvider);
     }
 
     public function testGetAllTables()
@@ -63,7 +71,7 @@ class DataTableAutoCompletionTest extends TestCase
         $this->dbSchemaParser->method('getModuleDataTables')->willReturn(['table1' => 'Table 1', 'table2' => 'Table 2']);
         $this->questionHelper->method('ask')->willReturn('table1');
 
-        $result = $this->dataTableAutoCompletion->tableSelector($input, $output, 'module_name');
+        $result = $this->dataTableAutoCompletion->tableSelector('module_name');
 
         $this->assertEquals('table1', $result);
     }

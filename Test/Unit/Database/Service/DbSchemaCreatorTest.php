@@ -13,13 +13,10 @@ class DbSchemaCreatorTest extends TestCase
     private $dbSchemaPath;
     private $dbSchemaCreator;
 
-    private $constraintDefinition;
-
     protected function setUp(): void
     {
         $this->dbSchemaPath = $this->createMock(DbSchemaPath::class);
         $this->dbSchemaCreator = new DbSchemaCreator($this->dbSchemaPath);
-        $this->constraintDefinition = $this->createMock(ConstraintDefinition::class);
     }
 
     public function testCreateDbSchemaWithForeignKey()
