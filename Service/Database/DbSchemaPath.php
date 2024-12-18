@@ -3,6 +3,7 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\Exception\FileSystemException;
+use Opengento\MakegentoCli\Exception\TableDefinitionException;
 use Opengento\MakegentoCli\Service\CurrentModule;
 
 class DbSchemaPath
@@ -21,13 +22,13 @@ class DbSchemaPath
      *
      * @param string $selectedModule
      * @return string
-     * @throws FileSystemException
+     * @throws TableDefinitionException
      */
     public function get(string $selectedModule): string
     {
         $modulePath = $this->currentModule->getModulePath();
         if (!$this->filesystem->getDirectoryReadByPath($modulePath)->isExist('etc/db_schema.xml')) {
-            throw new FileSystemException(__('No db_schema.xml found in module ' . $selectedModule));
+            throw new TableDefinitionException(__('No db_schema.xml found in module ' . $selectedModule));
         }
         return $modulePath . '/etc/db_schema.xml';
     }

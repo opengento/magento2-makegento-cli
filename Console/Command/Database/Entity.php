@@ -36,7 +36,6 @@ class Entity extends Command
     }
 
     /**
-     * @throws TableDefinitionException
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
@@ -44,7 +43,7 @@ class Entity extends Command
         $this->commandIoProvider->init($input, $output, $questionHelper);
 
         try {
-            $selectedModule = $this->moduleSelector->execute(true);
+            $this->moduleSelector->execute(true);
         } catch (\Exception $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
             return Command::FAILURE;

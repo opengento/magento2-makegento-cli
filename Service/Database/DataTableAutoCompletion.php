@@ -3,6 +3,9 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Exception\FileSystemException;
+use Opengento\MakegentoCli\Exception\CommandIoNotInitializedException;
+use Opengento\MakegentoCli\Exception\TableDefinitionException;
 use Opengento\MakegentoCli\Service\CommandIoProvider;
 use Symfony\Component\Console\Question\Question;
 
@@ -54,6 +57,7 @@ class DataTableAutoCompletion
      *
      * @param string $selectedModule
      * @return mixed
+     * @throws TableDefinitionException|CommandIoNotInitializedException
      */
     public function tableSelector(string $selectedModule): mixed
     {

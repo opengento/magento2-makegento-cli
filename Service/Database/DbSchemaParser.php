@@ -3,6 +3,7 @@
 namespace Opengento\MakegentoCli\Service\Database;
 
 use Magento\Framework\Exception\FileSystemException;
+use Opengento\MakegentoCli\Exception\TableDefinitionException;
 
 class DbSchemaParser
 {
@@ -20,6 +21,7 @@ class DbSchemaParser
      *
      * @param string $selectedModule
      * @return array
+     * @throws TableDefinitionException
      */
     public function getModuleDataTables(string $selectedModule): array
     {
@@ -34,14 +36,11 @@ class DbSchemaParser
      *
      * @param string $selectedModule
      * @return array
+     * @throws TableDefinitionException
      */
     private function parseDbSchema(string $selectedModule): array
     {
-        try {
-            $dbSchemaPath = $this->dbSchemaPath->get($selectedModule);
-        } catch (FileSystemException $e) {
-            return [];
-        }
+        $dbSchemaPath = $this->dbSchemaPath->get($selectedModule);
         $xml = simplexml_load_file($dbSchemaPath);
         /**
          * let's try to parse the xml file to find table names, their fields and attributes of the fields

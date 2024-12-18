@@ -89,7 +89,7 @@ class MakeEntity implements MakerInterface
      * functions to create fields, indexes and constraints.
      *
      * @return array[]
-     * @throws InvalidArrayException
+     * @throws InvalidArrayException|\Opengento\MakegentoCli\Exception\CommandIoNotInitializedException
      *
      * @SuppressWarnings(PHPMD.CyclomaticComplexity)
      */
@@ -134,7 +134,7 @@ class MakeEntity implements MakerInterface
         $constraints = [];
         while ($addNewField) {
             try {
-                $field = $this->field->create($this->output, $this->input, $primary, $tableName);
+                $field = $this->field->create($primary, $tableName);
             } catch (ExistingFieldException $e) {
                 $this->output->writeln("<error>{$e->getMessage()}</error>");
             }
@@ -150,7 +150,7 @@ class MakeEntity implements MakerInterface
         $addConstraint = true;
         while ($addConstraint) {
             try {
-                $constraint = $this->constraintDefinition->define($this->output, $this->input, $tableName, $tableFields, $this->questionHelper);
+                $constraint = $this->constraintDefinition->define($tableName, $tableFields);
                 if (empty($constraint)) {
                     $addConstraint = false;
                 } else {

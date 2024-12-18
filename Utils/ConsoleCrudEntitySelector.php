@@ -22,7 +22,6 @@ class ConsoleCrudEntitySelector
 {
 
     public function __construct(
-        private readonly DbSchemaPath $dbSchemaPath,
         private readonly DataTableAutoCompletion $dataTableAutoCompletion,
         private readonly DefaultClassNameGetter $defaultClassNameGetter,
         private readonly CommandIoProvider $commandIoProvider,
@@ -31,20 +30,12 @@ class ConsoleCrudEntitySelector
     }
 
     /**
-     * @throws FileSystemException
-     * @throws TableDefinitionException
      * @throws CommandIoNotInitializedException
+     * @throws FileSystemException
      */
     public function execute(
     ): string|int {
         $moduleName = $this->currentModule->getModuleName();
-        $path = $this->dbSchemaPath->get($moduleName);
-
-        if (!$path) {
-            throw new TableDefinitionException("The module $moduleName does not have a db_schema.xml file. Please run the makegento:db-schema:entity command first.");
-        }
-
-
         $tableName = $this->dataTableAutoCompletion->tableSelector($moduleName);
 
         $modelClassName = $this->defaultClassNameGetter->get($tableName, $moduleName);
