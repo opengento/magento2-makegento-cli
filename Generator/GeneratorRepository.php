@@ -164,7 +164,6 @@ class GeneratorRepository
         $namespace = $this->currentModule->getModuleNamespace('');
         $modelFactoryClass = '\\' . $namespace . '\\Model\\' . $modelClassName . 'Factory';
         $collectionFactoryClass = $collectionClass.'Factory';
-        $searchCriteriaInterfaceFactoryClass = $searchCriteriaInterface.'Factory';
 
         return [
             '__construct' => [
@@ -174,7 +173,7 @@ class GeneratorRepository
                     "private readonly $resourceClass \$resource",
                     "private readonly $modelFactoryClass \${$this->getConstructorArgumentName($modelFactoryClass)}",
                     "private readonly $collectionFactoryClass \${$this->getConstructorArgumentName($collectionFactoryClass)}",
-                    "private readonly $searchCriteriaInterfaceFactoryClass \${$this->getConstructorArgumentName($searchCriteriaInterfaceFactoryClass)}",
+                    "private readonly \Magento\Framework\Api\Search\SearchResultFactory \$searchResultFactory",
                     "private readonly \Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface \$collectionProcessor"
                 ],
                 'body' => ''
@@ -216,7 +215,7 @@ class GeneratorRepository
                 'body' =>
                     "\$collection = \$this->{$this->getConstructorArgumentName($collectionFactoryClass)}->create();
                     \$this->collectionProcessor->process(\$searchCriteria, \$collection);
-                    \$searchResults = \$this->{$this->getConstructorArgumentName($searchCriteriaInterfaceFactoryClass)}->create();
+                    \$searchResults = \$this->searchResultFactory->create();
                     \$searchResults->setSearchCriteria(\$searchCriteria);
                     \$searchResults->setItems(\$collection->getItems());
                     \$searchResults->setTotalCount(\$collection->getSize());
